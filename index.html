@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <!-- ethers.js v5.7.2 CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+  <!-- WalletConnect v2 EthereumProvider CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.18.1/dist/index.umd.js"></script>
   <style>
     :root {
       --bg: #090b0e;
@@ -572,6 +574,119 @@
       color: var(--primary);
     }
 
+
+    /* Wallet Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 1.75rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      position: relative;
+      animation: modalPop 0.25s ease-out;
+    }
+    @keyframes modalPop {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    .modal-close:hover {
+      color: var(--text);
+    }
+    .wallet-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .wallet-option-btn {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      text-align: left;
+      color: var(--text);
+    }
+    .wallet-option-btn:hover {
+      border-color: var(--primary);
+      background: rgba(0, 240, 255, 0.05);
+      transform: translateY(-1px);
+    }
+    .wallet-opt-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .opt-icon-injected {
+      background: linear-gradient(135deg, #f6851b, #e2761b);
+      color: #fff;
+    }
+    .opt-icon-wc {
+      background: linear-gradient(135deg, #3b99fc, #0052ff);
+      color: #fff;
+    }
+    .opt-icon-cb {
+      background: #0052ff;
+      color: #fff;
+    }
+    .wallet-opt-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.2rem;
+    }
+    .wallet-opt-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
     /* Modal / Alert styles */
     .toast {
       position: fixed;
@@ -870,6 +985,33 @@
     </div>
   </footer>
 
+
+  <!-- Wallet Selection Modal -->
+  <div class="modal-overlay" id="walletModal" onclick="if(event.target === this) hideWalletModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Connect Wallet</div>
+        <button class="modal-close" onclick="hideWalletModal()">&times;</button>
+      </div>
+      <div class="wallet-options">
+        <button class="wallet-option-btn" onclick="connectWalletConnect()">
+          <div class="wallet-opt-icon opt-icon-wc">⚡</div>
+          <div>
+            <div class="wallet-opt-name">WalletConnect</div>
+            <div class="wallet-opt-desc">Scan QR with Rainbow, MetaMask, Trust, Zerion & more</div>
+          </div>
+        </button>
+        <button class="wallet-option-btn" onclick="connectInjected()">
+          <div class="wallet-opt-icon opt-icon-injected">🦊</div>
+          <div>
+            <div class="wallet-opt-name">Browser Extension</div>
+            <div class="wallet-opt-desc">MetaMask, Rabby, Brave, or installed extension</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast" id="toast">
     <span id="toastIcon">ℹ️</span>
@@ -946,10 +1088,32 @@
       setTimeout(() => toast.classList.remove("show"), 4000);
     }
 
-    // Connect Wallet
-    async function connectWallet() {
+    // Wallet Modal Helpers
+    function showWalletModal() {
+      document.getElementById("walletModal").classList.add("active");
+    }
+
+    function hideWalletModal() {
+      document.getElementById("walletModal").classList.remove("active");
+    }
+
+    // Connect Entrypoint
+    function connectWallet() {
+      if (userAddress) {
+        if (confirm("Disconnect wallet?")) {
+          window.location.reload();
+        }
+        return;
+      }
+      showWalletModal();
+    }
+
+    // Injected (MetaMask, Rabby, etc.)
+    async function connectInjected() {
+      hideWalletModal();
       if (!window.ethereum) {
-        alert("Please install MetaMask, Rabby, or Coinbase Wallet to use this dApp.");
+        showToast("No extension detected. Opening WalletConnect QR code...", "ℹ️");
+        setTimeout(connectWalletConnect, 500);
         return;
       }
 
@@ -965,7 +1129,6 @@
               params: [{ chainId: CONFIG.CHAIN_HEX }]
             });
           } catch (switchError) {
-            // Add chain if not found
             if (switchError.code === 4902) {
               await window.ethereum.request({
                 method: "wallet_addEthereumChain",
@@ -993,13 +1156,63 @@
         await refreshUserData();
         showToast("Connected to Base", "✅");
 
-        // Listeners
         window.ethereum.on("accountsChanged", () => window.location.reload());
         window.ethereum.on("chainChanged", () => window.location.reload());
 
       } catch (err) {
         console.error("Wallet connection error:", err);
         showToast(err.message || "Connection failed", "❌");
+      }
+    }
+
+    // WalletConnect v2
+    async function connectWalletConnect() {
+      hideWalletModal();
+      showToast("Loading WalletConnect...", "⏳");
+      try {
+        const epPkg = window["@walletconnect/ethereum-provider"];
+        const EthereumProvider = epPkg ? (epPkg.EthereumProvider || epPkg.default?.EthereumProvider || epPkg) : null;
+        if (!EthereumProvider || typeof EthereumProvider.init !== "function") {
+          showToast("WalletConnect loading, please retry in a second", "⚠️");
+          return;
+        }
+
+        const wc = await EthereumProvider.init({
+          projectId: "2f05ae7f1116030fde2d36508f472bfb",
+          chains: [CONFIG.CHAIN_ID],
+          optionalChains: [CONFIG.CHAIN_ID],
+          showQrModal: true,
+          rpcMap: {
+            8453: CONFIG.RPC_URL
+          },
+          metadata: {
+            name: "$STAKED Vault",
+            description: "Dual Real-Yield Staking on Base",
+            url: window.location.origin,
+            icons: ["https://avatars.githubusercontent.com/u/108554348?s=200&v=4"]
+          }
+        });
+
+        await wc.enable();
+        provider = new ethers.providers.Web3Provider(wc);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        document.getElementById("connectBtn").innerText = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+        
+        initContracts();
+        await refreshUserData();
+        showToast("Connected via WalletConnect", "⚡");
+
+        wc.on("accountsChanged", () => window.location.reload());
+        wc.on("chainChanged", () => window.location.reload());
+        wc.on("disconnect", () => window.location.reload());
+
+      } catch (err) {
+        console.error("WalletConnect error:", err);
+        if (err.message && !err.message.includes("User closed")) {
+          showToast(err.message || "WalletConnect failed", "❌");
+        }
       }
     }
 
