@@ -1,8 +1,8 @@
 # Keeper runbook
 
-The vault and distributor are live on Base and fully wired. Nothing runs by itself — a keeper (the owner
-wallet `0x1a3091097126d69a4f955051d4d018c1ae3cdcf8`, or any wallet set via `setKeeper`) pushes the loop below once a
-day. All swap-type calls take a caller-supplied minimum output, so the keeper is the only party that can move value
+The vault and distributor are live on Base and fully wired. A scheduled keeper (the owner wallet
+`0x1a3091097126d69a4f955051d4d018c1ae3cdcf8`, running through Bankr automation once a day at 14:00 UTC) pushes the loop
+below. All swap-type calls take a caller-supplied minimum output, so the keeper is the only party that can move value
 through a DEX and it always does so behind a slippage bound.
 
 | Contract | Address |
@@ -17,13 +17,13 @@ through a DEX and it always does so behind a slippage bound.
 One-time setup (done Sep 28 2026): max approvals from the owner wallet
 `STAKED -> Distributor`, `BNKR -> Distributor`, `BNKR -> Vault`.
 
-## Daily loop
+## Daily loop (automated, 14:00 UTC)
 
 1. **Claim pool fees** — the $STAKED v4 pool pays the owner wallet in STAKED + BNKR (95% share). Claim through Bankr
    (`claim_token_fees` on the STAKED address). Skip if claimable is dust (< 1,000 STAKED and < 100 BNKR).
 2. **Distribute** — `Distributor.depositAndDistribute(stakedWei, bnkrWei)` with exactly the claimed amounts.
    Effect: 50% STAKED -> 0xdead, 50% STAKED -> liquidity wallet, 50% BNKR -> Bankr-staking wallet, 50% BNKR -> `pendingSwapBnkr`.
-3. **USDC leg** — if `Distributor.canSwap()` is true (`pendingSwapBnkr >= minBnkrBatch`, currently 240,000 BNKR ~ $100):
+3. **USDC leg** — if `Distributor.canSwap()` is true (`pendingSwapBnkr >= minBnkrBatch`, currently 60,000 BNKR ~ $25):
    quote BNKR -> WETH -> USDC, set `minUsdcOut = quote * 0.97` (6 decimals), call `swapAndNotify(minUsdcOut)`.
    The USDC lands in the vault and streams to stakers over the next 7 days.
 4. **BNKR staking leg (path A)** — stake whatever BNKR the distributor sent to the owner wallet into the Bankr staking
@@ -40,7 +40,9 @@ One-time setup (done Sep 28 2026): max approvals from the owner wallet
 
 ## Thresholds and knobs (owner only)
 
-- `Distributor.setMinBnkrBatch(wei)` — USDC-leg batch size; retune as BNKR price moves.
+- `Distributor.setMinBnkrBatch(wei)` — USDC-leg batch size. History: 240,000 BNKR (~$100) at deploy, lowered to
+  60,000 BNKR (~$25) on Sep 28 2026 (tx `0x62eee832a3749d9a325ca49346cbfd51cbaa812813cd7c13552bafbbb46e415a`).
+  Raise again anytime as volume grows.
 - `Distributor.setPoolFees(bnkrWethFee, wethUsdcFee)` — v3 fee tiers on the swap path (1% / 0.05% today).
 - `Vault.setRewardsDuration(seconds)` — stream length, only when both streams are finished.
 - `Vault.setKeeper / Distributor.setKeeper` — hand the loop to a dedicated bot wallet later.
@@ -50,3 +52,4 @@ One-time setup (done Sep 28 2026): max approvals from the owner wallet
 - Claimed 15,344.06 STAKED + 0.00996 BNKR, `depositAndDistribute` executed:
   7,672.03 STAKED burned, 7,672.03 STAKED to liquidity wallet, 0.00498 BNKR to staking wallet, 0.00498 BNKR queued.
 - Swap / stake / relay / buyback legs skipped: all below thresholds.
+- Daily automation created; first scheduled run Sep 29 2026 14:00 UTC.
