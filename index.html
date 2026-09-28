@@ -10,7 +10,12 @@
   <!-- ethers.js v5.7.2 CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
   <!-- WalletConnect v2 EthereumProvider CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.18.1/dist/index.umd.js"></script>
+  <script type="module">
+    // WalletConnect loads via ESM (the UMD build exposes no usable exports)
+    import("https://esm.sh/@walletconnect/ethereum-provider@2.18.1")
+      .then(function (m) { window.__WCProvider = m.EthereumProvider; })
+      .catch(function (e) { window.__WCError = e; console.error("WC load failed", e); });
+  </script>
   <style>
     :root {
       --bg: #090b0e;
@@ -1170,10 +1175,18 @@
       hideWalletModal();
       showToast("Loading WalletConnect...", "⏳");
       try {
-        const epPkg = window["@walletconnect/ethereum-provider"];
-        const EthereumProvider = epPkg ? (epPkg.EthereumProvider || epPkg.default?.EthereumProvider || epPkg) : null;
+        let EthereumProvider = window.__WCProvider;
+        if (!EthereumProvider) {
+          try {
+            const m = await import("https://esm.sh/@walletconnect/ethereum-provider@2.18.1");
+            EthereumProvider = m.EthereumProvider;
+            window.__WCProvider = EthereumProvider;
+          } catch (e) {
+            console.error("WC import failed", e);
+          }
+        }
         if (!EthereumProvider || typeof EthereumProvider.init !== "function") {
-          showToast("WalletConnect loading, please retry in a second", "⚠️");
+          showToast("WalletConnect failed to load. Check your connection and retry.", "⚠️");
           return;
         }
 
