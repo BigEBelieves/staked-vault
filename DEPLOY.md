@@ -1,19 +1,22 @@
 # Deploy checklist (Base mainnet)
 
-## Deployed (Sep 28, 2026)
+## Deployed + verified (Sep 28, 2026)
 
-| Contract | Address |
-|---|---|
-| StakedVault | `0x01b568eBCFb8c6db2Cf1c5f70c9b105f4187D92F` |
-| StakedDistributor | `0xDdf0eC9aA4d36eD07257187b524a8810c5BCF376` |
-| StakedBuybackExecutor | `0x290072cF64963D469a6be9d124D7328bf2992755` |
+| Contract | Address | Basescan |
+|---|---|---|
+| StakedVault | `0x01b568eBCFb8c6db2Cf1c5f70c9b105f4187D92F` | [verified source](https://basescan.org/address/0x01b568eBCFb8c6db2Cf1c5f70c9b105f4187D92F#code) |
+| StakedDistributor | `0xDdf0eC9aA4d36eD07257187b524a8810c5BCF376` | [verified source](https://basescan.org/address/0xDdf0eC9aA4d36eD07257187b524a8810c5BCF376#code) |
+| StakedBuybackExecutor | `0x290072cF64963D469a6be9d124D7328bf2992755` | [verified source](https://basescan.org/address/0x290072cF64963D469a6be9d124D7328bf2992755#code) |
+
+Compiler settings used for all three: solc 0.8.24, optimizer on (200 runs), evm version paris.
 
 Wiring completed on the vault: `setDistributor`, `setKeeper`, `setBuybackExecutor`.
 Owner / keeper: `0x1a3091097126d69a4f955051d4d018c1ae3cdcf8`.
 
 Frontend `CONFIG` in `index.html` and `web/index.html` points at the vault and distributor above.
+Live dapp: https://bigebelieves.github.io/staked-vault/
 
-Still pending: Basescan source verification (see section 5) and the keeper automation (section 3).
+Still pending: the keeper automation (section 3).
 
 ---
 
@@ -57,4 +60,4 @@ Paste the vault and distributor addresses into `CONFIG` in `web/index.html` and 
 
 ## 5. Verify
 
-Verify all three contracts on Basescan with solc 0.8.24, optimizer on (200 runs), evm version paris.
+Verify all three contracts on Basescan with solc 0.8.24, optimizer on (200 runs), evm version paris. (Done — see table above.)
