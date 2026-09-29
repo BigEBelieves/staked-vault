@@ -10,7 +10,7 @@ Dual-reward staking for **$STAKED** on Base, funded by the STAKED/BNKR Uniswap v
 
 The Safe `0xb9066550918fa778a4039120eac878230cf8f6FC` is the administrative owner following the ownership migration.
 Legacy automation is disabled. This branch proposes helper contracts for fixed-destination fee collection,
-reward forwarding and Safe-bounded trading. **The helpers are deployed and the relay, guard and executor are connected. Trading remains paused; the collector has no fee rights yet.**
+reward forwarding and Safe-bounded trading. **The helpers are deployed and connected, and the collector holds the 95% fee share. Trading remains paused with no operator or spending budget.**
 See [DEPLOY.md](DEPLOY.md) for addresses, receipts and exact source matches.
 The branch passes 146 offline checks and 67 checks against a recorded Base fork.
 See [FORK-TESTING.md](FORK-TESTING.md) for evidence and limits, and
@@ -81,7 +81,7 @@ Live: https://bigebelieves.github.io/staked-vault/
 
 ## Status
 
-**Original contracts deployed on Base mainnet (Sep 28, 2026).** Safe migration supersedes the original Bankr ownership. The four helpers were deployed and the wiring completed on September 29, 2026. Fee-rights transfer and trading activation remain pending. Re-read live state before use.
+**Original contracts deployed on Base mainnet (Sep 28, 2026).** Safe migration supersedes the original Bankr ownership. The four helpers were deployed, wired and given the collector fee rights on September 29, 2026. Independent review and trading activation remain pending. Re-read live state before use.
 
 | Contract | Address |
 | --- | --- |

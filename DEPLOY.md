@@ -20,17 +20,42 @@ The recorded integration run passed 67 checks against Base block 51,929,714, inc
 Safe execution, fee collection, v3/v4 swaps and rollback. See [FORK-TESTING.md](FORK-TESTING.md).
 The helpers are now deployed. Fresh-state Safe batch simulation and independent review remain required before activation.
 
+## Fee migration complete — trading paused
+
+The exact two-call fee batch executed successfully at Base block **51945713**:
+[0x2147d772dd1a1cf3706964e6954f8c8796473210e889024998e3cdb371b76098](https://basescan.org/tx/0x2147d772dd1a1cf3706964e6954f8c8796473210e889024998e3cdb371b76098).
+Safe nonce 5 was consumed; the nonce was **6** at verification block **51945808**.
+The emitted Safe transaction hash exactly matched the rehearsed batch:
+`0x5033810b645bd8cbebe18f061c0bf09c89ac5edbd44867ffb33a3e01329cce92`.
+Both zero-value calls, the official MultiSendCallOnly runtime and the 2-of-3 Safe threshold were checked.
+
+The Safe first received **919,116.543060362817900867 STAKED** and
+**0.593560732118822925 BNKR** in accrued fees, then transferred its beneficiary share.
+Live shares at the verification block: collector **95%**, Safe **0%**, Bankr **0%**, existing other beneficiary **5%**.
+Previously claimed tokens remain in the Safe. This transaction did not call `collectAndDistribute()`;
+future collector claims may be triggered by anyone and follow the fixed distribution route.
+
+Both legacy keepers remain the guard, both reward links remain the relay, and both executor references
+remain the bounded executor. Ownership and payout wallets remain the Safe. The guard is paused,
+its operator is zero, and both budgets are zero. All three Bankr allowances and both collector
+allowances to the distributor read zero. Independent review and trading activation remain outstanding.
+No automation was restarted. Off-chain job status and the separate Bankr staking position were not queried.
+
+See [the live fee-migration record](deployments/base-20260929-fees.json) and
+[the earlier preparation and local simulation](deployments/base-20260929-fees-preparation.json).
+Do not resubmit the completed fee batch.
+
 ## Helpers connected — trading paused
 
 The ten-call wiring batch executed successfully at Base block **51944324**:
-[0xcb4976cbaec92290de5ff14564d75fa43b91a92773a6113babad70dbda534e71](https://basescan.org/tx/0xcb4976cbaec92290de5ff14564d75fa43b91a92773a6113babad70dbda534e71). Safe nonce 4 was consumed; the nonce is now 5.
+[0xcb4976cbaec92290de5ff14564d75fa43b91a92773a6113babad70dbda534e71](https://basescan.org/tx/0xcb4976cbaec92290de5ff14564d75fa43b91a92773a6113babad70dbda534e71). Safe nonce 4 was consumed, advancing the nonce to 5 before the fee migration.
 
 Configuration verified at Base block **51944466**. The vault and distributor both use
 the guard as keeper and the relay for rewards. The vault and guard point to the bounded executor.
 The guard remains paused with no operator or spending budget. Ownership and payouts remain with
-the 2-of-3 Safe; all four helper runtimes match the deployed build. The Safe still owns the 95%
-fee share, the collector owns 0%, and all three Bankr allowances remain zero. Fee-rights transfer
-and trading activation are separate pending stages.
+the 2-of-3 Safe; all four helper runtimes matched the deployed build. The Safe still held the 95%
+fee share at that earlier snapshot, and all three Bankr allowances were zero. The subsequent
+fee transfer is recorded above; trading remains paused.
 
 The wallet submitted through an ERC-4337 EntryPoint. Safe selected official MultiSendCallOnly
 v1.5.0 at `0xA83c336B20401Af773B6219BA5027174338D1836`, rather than the v1.4.1
@@ -64,8 +89,8 @@ Follow [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md), including fork tests, con
 Safe batch simulation, guarded trial, receipt checks and rollback. Keep the existing vault and
 its user positions; the reward relay and guarded executor connect through existing setters.
 
-Editing Solidity does not update an already deployed contract. Wiring is complete; do not repeat
-the deployment or wiring transactions. Trading activation remains a separate Safe decision.
+Editing Solidity does not update an already deployed contract. Wiring and fee migration are complete;
+do not repeat their transactions or the deployments. Trading activation remains a separate Safe decision.
 
 ## Build and test
 

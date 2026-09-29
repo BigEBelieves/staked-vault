@@ -1,8 +1,8 @@
 # Deployment tooling — helpers connected, trading paused
 
 The four helpers were deployed on Base on September 29, 2026. See [DEPLOY.md](DEPLOY.md)
-for confirmed addresses, source verification and the successful ten-call wiring receipt.
-Do not repeat the creation or wiring transactions. Fee-rights transfer, review and activation remain pending.
+for confirmed addresses, source verification, the ten-call wiring receipt and the two-call fee migration receipt.
+Do not repeat the creation, wiring or fee-transfer transactions. Independent review and trading activation remain pending.
 The remaining CLI workflow prepares unsigned Safe configuration batches.
 
 
@@ -115,7 +115,9 @@ The snapshot can become stale; the JSON checksum is a consistency check, not a s
 
 ## 5. Generate a separate fee-beneficiary batch
 
-Only after the wiring receipt and source checks:
+Completed on Base on September 29, 2026 at block 51945713; see [DEPLOY.md](DEPLOY.md).
+The commands below document the workflow. Do not resubmit the completed fee batch.
+This stage runs only after the wiring receipt and source checks:
 
 ```sh
 npm run prepare:deployment -- batch fees deployment-plan.json deployment-hashes.json safe-fees.json
