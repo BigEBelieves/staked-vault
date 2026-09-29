@@ -2,7 +2,7 @@
 
 **Keep the old jobs disabled.** The previous daily/hourly Bankr commands are retired. They relied
 on Bankr owning contracts, holding fee rights and using 3–5% quote tolerances. The Safe now owns
-those administrative rights; the relay, guard and executor are connected, but the guard is paused with no operator or budget.
+those administrative rights. Read the guard's operator, pause state and budgets before every preparation.
 The collector now holds the 95% fee share. Independent review and trading activation remain outstanding.
 See [DEPLOY.md](DEPLOY.md) for the deployment record.
 See [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md) for the complete wiring and test gates.
@@ -13,7 +13,7 @@ the still-unverified provider/Bankr signing requirements. No sender is implement
 
 - Safe: protocol owners, payout destination, helper authority, policy approvals and unpause.
 - Guard: the only automation keeper address configured on the existing vault and distributor.
-- Bankr: operator remains unset. Any future operator role must be limited to the guard; a BNKR donor role needs separate Safe authorization.
+- Bankr: its operator role must be limited to the guard; a BNKR donor role needs separate Safe authorization.
 - Collector: holds the 95% pool beneficiary share after the confirmed Safe transfer; anyone may trigger collection and the fixed distribution, even while swaps are paused.
 - No unlimited approvals from Bankr or the Safe are needed for collecting or swapping pool fees.
 
@@ -23,6 +23,11 @@ Each policy expires within one hour, sets at most 1% slippage from three indepen
 reference quotes, caps each trade, caps total spending, and specifies an absolute v4 price boundary.
 Expiry or exhausted budgets stop execution. Only the Safe can renew. This version does not provide
 unattended oracle updates, and the policy is not a TWAP.
+
+Use the read-only [first-window policy planner](TRIAL-POLICY.md) to check eligible funding and
+prepare a single `setPolicy` call from explicitly reviewed references. It does not unpause trading.
+It requires one-trade budgets, preserves the distributor's existing minimum, and never treats a
+wallet balance or a direct USDC transfer as accounted buyback reserve.
 
 ## Loop after wiring and activation
 
@@ -38,7 +43,10 @@ unattended oracle updates, and the policy is not a TWAP.
    distribution and buyback separately. A changed head or batch requires a new quote.
 6. Sign using the limited operator and submit through a provider verified to support Base private
    transactions. Use that provider's required submission method. Never fall back to public submission.
-   Check head/deadline again after wallet signing; abandon expired calldata and requote.
+   Call `revalidateKeeper` after wallet signing to recheck head, quote hash, deadline, operator,
+   nonce, queue, budget and simulation. Abandon stale calldata and requote. Also independently
+   decode and authenticate the wallet's signed transaction: `revalidateKeeper` checks the unsigned
+   plan and does not establish that the wallet signed those exact bytes.
 7. Verify receipt status and token flows: USDC rewards into original vault, buyback STAKED to burn,
    exact reserve decrement, expected budgets, and zero allowances. Reverted calls consume no budget.
 8. Staking Safe-held BNKR and handling the old Bankr-owned staking position are separate operations.
