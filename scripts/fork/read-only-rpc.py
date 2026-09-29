@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import threading
 import time
@@ -45,16 +46,22 @@ class Handler(BaseHTTPRequestHandler):
             for attempt in range(3):
                 # Public read providers need bounded pacing, including retries.
                 time.sleep(0.25 if attempt == 0 else 2 ** (attempt - 1))
-                response = subprocess.run(['curl', '-fsS', '--max-time', '20', args.url,
+                response = subprocess.run(['curl', '-sS', '--write-out', '\n%{http_code}', '--max-time', '20', args.url,
                     '-H', 'Content-Type: application/json', '--data', payload], capture_output=True, text=True)
+                body, _, raw_status = response.stdout.rpartition('\n')
+                status = int(raw_status) if re.fullmatch(r'[0-9]{3}', raw_status) else 0
                 try:
-                    result = json.loads(response.stdout)
+                    result = json.loads(body)
+                    if not isinstance(result, dict):
+                        raise ValueError('Non-object RPC response')
                     if 'result' in result:
                         if immutable and result['result'] is not None:
                             filename.write_text(json.dumps(result))
                         result['id'] = request.get('id')
                         return result
                     error = result.get('error', {})
+                    if error:
+                        print('RPC_DIAGNOSTIC '+json.dumps({'method': method, 'httpStatus': status, 'rpcCode': error.get('code') if isinstance(error.get('code'), int) else None}), flush=True)
                     if error.get('code') in {-32016, -32005, 429} or any(word in str(error.get('message', '')).lower() for word in ['rate limit', 'too many requests']):
                         print('RPC read rate limit; retrying', flush=True)
                         continue
@@ -63,7 +70,8 @@ class Handler(BaseHTTPRequestHandler):
                         result['id'] = request.get('id')
                         return result
                 except (ValueError, TypeError):
-                    if '429' in response.stderr:
+                    print('RPC_DIAGNOSTIC '+json.dumps({'method': method, 'httpStatus': status, 'curlCode': response.returncode}), flush=True)
+                    if status == 429:
                         print('RPC read HTTP rate limit; retrying', flush=True)
                     elif response.returncode == 28:
                         print('RPC read connection timeout; retrying', flush=True)

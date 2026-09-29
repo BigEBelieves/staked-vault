@@ -21,6 +21,8 @@ test('failure diagnostics disclose only allowlisted types and source locations',
  'Details: rate limit 429 0xdeadbeef https://private.invalid/key '+
  'at file:///home/private/scripts/v3-migration.mjs:53:9\n'+
  'at /home/private/test/v3-migration-fork.test.mjs:19:16';
- assert.deepEqual(publicFailure(raw),{categories:['rate limit'],errorTypes:['ContractFunctionExecutionError'],sourceLocations:['scripts/v3-migration.mjs:53:9','test/v3-migration-fork.test.mjs:19:16']});
- assert.deepEqual(publicFailure('Timeout: 600000 PRIVATE_POSITION'),{categories:[],errorTypes:[],sourceLocations:[]});
+ assert.deepEqual(publicFailure(raw),{categories:['rate limit'],errorTypes:['ContractFunctionExecutionError'],sourceLocations:['scripts/v3-migration.mjs:53:9','test/v3-migration-fork.test.mjs:19:16'],rpcFailures:[]});
+ assert.deepEqual(publicFailure('Timeout: 600000 PRIVATE_POSITION'),{categories:[],errorTypes:[],sourceLocations:[],rpcFailures:[]});
+ const diagnostic='RPC_DIAGNOSTIC '+JSON.stringify({method:'eth_getLogs',httpStatus:400,rpcCode:-32000,url:'PRIVATE_ENDPOINT',balance:'PRIVATE_BALANCE',calldata:'PRIVATE_CALLDATA'});
+ assert.deepEqual(publicFailure(diagnostic).rpcFailures,[{method:'eth_getLogs',httpStatus:400,rpcCode:-32000}]);
 });

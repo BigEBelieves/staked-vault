@@ -10,11 +10,18 @@ export function publicFailure(stderr){
   ['assertion failed',/AssertionError/],
   ['connection timeout',/connect.*timed out|connection timeout|TimeoutError|request took too long/i],
   ['invalid RPC parameters',/invalid (?:argument|params|parameters)/i],
+  ['read transport failure',/RPC read transport failed/],
  ];
  return {
   categories:categories.filter(([,pattern])=>pattern.test(stderr)).map(([label])=>label),
   errorTypes:[...new Set(stderr.match(/\b(?:ContractFunctionExecutionError|ContractFunctionRevertedError|RpcRequestError|HttpRequestError|InvalidInputRpcError|UnknownRpcError|AssertionError|TypeError|SyntaxError)\b/g)??[])],
   sourceLocations:[...new Set([...stderr.matchAll(/\b((?:scripts\/(?:v3-migration|twap-keeper-v3-plan)|test\/v3-migration-fork\.test)\.mjs:\d+:\d+)/g)].map(m=>m[1]))],
+  rpcFailures:[...stderr.matchAll(/RPC_DIAGNOSTIC (\{[^\n]+\})/g)].flatMap(m=>{
+   try{
+    const x=JSON.parse(m[1]);if(!['eth_chainId','net_version','eth_blockNumber','eth_getBlockByNumber','eth_getBlockByHash','eth_getBalance','eth_getTransactionCount','eth_getCode','eth_getStorageAt','eth_getProof','eth_call','eth_getTransactionByHash','eth_getTransactionReceipt','eth_getLogs','eth_gasPrice'].includes(x.method))return [];
+    return [{method:x.method,...Object.fromEntries(['httpStatus','rpcCode','curlCode'].filter(k=>Number.isSafeInteger(x[k])).map(k=>[k,x[k]]))}];
+   }catch{return [];}
+  }).slice(-10),
  };
 }
 // Publish only execution evidence. Never return the private snapshot, balances,
