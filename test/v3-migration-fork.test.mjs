@@ -6,7 +6,7 @@ import {base} from 'viem/chains';
 import {createV3Plan,snapshotMigration,verifyV3Deployments,prepareV3Stage,limitsObject,tokenAbi,feeAbi,serialize} from '../scripts/v3-migration.mjs';
 import {prepareTwapKeeperV3,revalidateTwapKeeperV3} from '../scripts/twap-keeper-v3-plan.mjs';
 const load=p=>JSON.parse(readFileSync(p,'utf8'));
-const C={...load('config/base.json'),...load('config/v3-migration.json')},A=load('build/all.json');
+const C={...load('config/base.json'),...load('config/v3-migration.json'),logPageSize:process.env.BASE_LOG_PAGE_SIZE??100},A=load('build/all.json');
 const url=new URL(process.env.LOCAL_FORK_RPC_URL??'http://127.0.0.1:18545');
 assert(['127.0.0.1','localhost','[::1]'].includes(url.hostname),'Loopback Anvil only');
 const transport=http(url.href,{timeout:600000,retryCount:0});

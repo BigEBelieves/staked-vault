@@ -8,8 +8,9 @@ contracts, tests the public-summary filter, then performs the migration on a
 loopback-only Base fork. An initial read-only preflight selects one public
 provider and pins a block. Preflight requires contract reads and historical
 depositor logs; a provider that rejects either is not selected. The provider
-remains fixed for the entire run. Historical logs use complete 100-block pages,
-and the read proxy paces requests and retries transient rate limits.
+remains fixed for the entire run. Historical logs use complete pages of 2,000
+or 100 blocks, whichever passes preflight. The read proxy spaces upstream
+requests by at least 1.1 seconds and backs off further for transient rate limits.
 The upstream proxy denies write methods. All Safe approvals, contract creations,
 asset movements, impersonation and time changes occur only on local Anvil.
 

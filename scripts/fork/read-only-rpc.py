@@ -43,9 +43,9 @@ class Handler(BaseHTTPRequestHandler):
         payload = json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params})
         with limit:
             print(method, 'fetch', flush=True)
-            for attempt in range(3):
+            for attempt in range(4):
                 # Public read providers need bounded pacing, including retries.
-                time.sleep(0.25 if attempt == 0 else 2 ** (attempt - 1))
+                time.sleep(1.1 if attempt == 0 else 5 * 2 ** (attempt - 1))
                 response = subprocess.run(['curl', '-sS', '--write-out', '\n%{http_code}', '--max-time', '20', args.url,
                     '-H', 'Content-Type: application/json', '--data', payload], capture_output=True, text=True)
                 body, _, raw_status = response.stdout.rpartition('\n')
