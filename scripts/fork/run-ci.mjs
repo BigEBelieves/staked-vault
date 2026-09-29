@@ -5,7 +5,7 @@ import {readFileSync,writeFileSync,mkdtempSync,createWriteStream} from 'node:fs'
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {createInterface} from 'node:readline';
-import {publicSummary} from './ci-summary.mjs';
+import {publicSummary,publicFailure} from './ci-summary.mjs';
 const providers=['https://mainnet.base.org','https://base-rpc.publicnode.com'];
 const C=JSON.parse(readFileSync('config/base.json'));
 function rpc(endpoint,method,params){
@@ -31,17 +31,17 @@ const out=mkdtempSync(join(tmpdir(),'staked-private-fork-')),report=join(out,'re
 console.log('Pinned Base block '+blockNumber+'; starting local-only rehearsal.');
 const privateLog=createWriteStream(join(out,'private.log'),{flags:'wx'});
 const child=spawn(process.execPath,['scripts/fork/run.mjs','--v3-migration'],{env:{...process.env,BASE_READ_RPC_URL:endpoint,BASE_FORK_BLOCK:blockNumber,V3_MIGRATION_REPORT:report,ANVIL_BIN:resolve('scripts/fork/anvil/node_modules/@foundry-rs/anvil-linux-amd64/bin/anvil')},stdio:['ignore','pipe','pipe']});
-let phase='startup',failureClass='test assertion or execution failure';
+let phase='startup',stderr='';
 createInterface({input:child.stdout}).on('line',line=>{
  privateLog.write(line+'\n');
  // Only static test phase labels and assertions are printed. No raw RPC errors.
  if(/^\[migration\] [A-Za-z0-9 ,;().-]+$/.test(line)){phase=line;console.log(line);}
  else if(/^  ok [A-Za-z0-9 ,;().-]+$/.test(line))console.log(line);
 });
-child.stderr.on('data',bytes=>{privateLog.write(bytes);if(/upstream failed|timed? ?out|timeout/i.test(bytes.toString()))failureClass='RPC read failure';});
+child.stderr.on('data',bytes=>{privateLog.write(bytes);stderr=(stderr+bytes.toString()).slice(-1000000);});
 const timer=setTimeout(()=>child.kill('SIGTERM'),25*60*1000);
 const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('close',resolve);});clearTimeout(timer);privateLog.end();
-if(code!==0){console.error('Rehearsal failed during '+phase+' ('+failureClass+'). No success claimed; raw private logs were not published.');process.exit(1);}
+if(code!==0){console.error('Rehearsal failed during '+phase+'. No success claimed; raw private logs were not published.');console.error(JSON.stringify(publicFailure(stderr)));process.exit(1);}
 let summary;
 try{summary=publicSummary(JSON.parse(readFileSync(report,'utf8')),blockNumber,block.hash,commit);}
 catch{console.error('Fork report failed verification. No success claimed and no private report values published.');process.exit(1);}

@@ -1,4 +1,22 @@
 import assert from 'node:assert/strict';
+// Return only allowlisted categories and source locations, never raw errors.
+export function publicFailure(stderr){
+ const categories=[
+  ['rate limit',/rate.limit|too many requests|\b429\b/i],
+  ['read upstream failed',/Read-only upstream failed/],
+  ['archive state unavailable',/missing trie node|historical state|state is not available/i],
+  ['log range rejected',/block range|query returned more than|too many blocks/i],
+  ['execution reverted',/execution reverted|Local transaction reverted/i],
+  ['assertion failed',/AssertionError/],
+  ['connection timeout',/connect.*timed out|connection timeout|TimeoutError|request took too long/i],
+  ['invalid RPC parameters',/invalid (?:argument|params|parameters)/i],
+ ];
+ return {
+  categories:categories.filter(([,pattern])=>pattern.test(stderr)).map(([label])=>label),
+  errorTypes:[...new Set(stderr.match(/\b(?:ContractFunctionExecutionError|ContractFunctionRevertedError|RpcRequestError|HttpRequestError|InvalidInputRpcError|UnknownRpcError|AssertionError|TypeError|SyntaxError)\b/g)??[])],
+  sourceLocations:[...new Set([...stderr.matchAll(/\b((?:scripts\/(?:v3-migration|twap-keeper-v3-plan)|test\/v3-migration-fork\.test)\.mjs:\d+:\d+)/g)].map(m=>m[1]))],
+ };
+}
 // Publish only execution evidence. Never return the private snapshot, balances,
 // signer addresses, deployment calldata or copied wallet positions.
 export function publicSummary(report,block,hash,commit){
