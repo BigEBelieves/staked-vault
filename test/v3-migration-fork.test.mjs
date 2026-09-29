@@ -22,7 +22,7 @@ const report={mode:'LOCAL FORK ONLY — no live writes',block:forkBlock,blockHas
  fixtures:['Native ETH increased and a fixed local gas price used; real EOA Safe owners impersonated only on Anvil.',
  'Synthetic nonzero reward streams funded with tokens bought using fork-only ETH; no token/storage balances patched.',
  'Initial wiring requires no time advance; a separate later-change delay, original lock and reward periods are tested.',
- 'Tiny real-pool swaps refresh observations after local time advances.',
+ 'Bounded real-pool swaps cross a tick and verify fresh observations after local time advances; oracle storage is not patched.',
  'User opt-in migration rehearsed with the Bankr position; no such withdrawal, approval or stake sent live.'],
  limitations:['Does not preserve the original lock timestamp: a V3 stake begins a fresh seven-day lock.',
  'Old BNKR queue, buyback reserve and reward dust remain protected in old contracts; they are not copied to V3.',
@@ -156,7 +156,28 @@ for(const[t,amount]of Object.entries(earnedBefore))check(await balance(C[t],C.ba
 report.observations.claimPreservation={earnedBefore,claimedAfterCutover:earnedBefore,oldReserve,oldQueueAfterCutover:await call('StakedDistributor',C.distributor,'pendingSwapBnkr'),newLock:await call('StakedVaultV3',H.vault,'lockEnd',[C.bankr])};
 
 console.log('[migration] real pools, unchanged floors, bounded queue with late dust');
-await buy(C.bnkr,10000,10n**12n);await buy(C.usdc,500,10n**12n);
+// Uniswap V3 writes a swap observation only when its tick changes. A dust swap
+// can leave the observation days old after the lock/reward time jumps above.
+// Use the existing math harness only for exact tick arithmetic, then make a
+// normal, quoted WETH swap across one tick and verify the actual observation.
+const math=(await send({data:A.TwapMathHarness.bytecode})).contractAddress;
+const ceil=(n,d)=>(n+d-1n)/d,Q96=1n<<96n;
+for(const [token,fee,poolGetter]of[[C.bnkr,10000,'poolBnkrWeth'],[C.usdc,500,'poolWethUsdc']]){
+ const pool=await call('StakedTwapKeeperV3',H.keeper,poolGetter);
+ const slot=await call('TwapV3Pool',pool,'slot0'),oldObservation=await call('TwapV3Pool',pool,'observations',[slot[2]]);
+ const zeroForOne=same(await call('TwapV3Pool',pool,'token0'),C.weth);
+ const targetTick=Number(slot[1])+(zeroForOne?-1:1),target=await call('TwapMathHarness',math,'sqrt',[targetTick]);
+ const liquidity=await call('TwapV3Pool',pool,'liquidity'),sqrt=slot[0];
+ const net=zeroForOne?ceil(liquidity*Q96*(sqrt-target),sqrt*target):ceil(liquidity*(target-sqrt),Q96);
+ const amount=ceil(net*1000000n,1000000n-BigInt(fee))+2n;
+ check(amount>0n&&amount<=5n*E18,'oracle refresh fixture has bounded fork-only WETH input');
+ const held=await balance(C.weth,actor);
+ if(held<amount)await send({...tx(C.weth,parseAbi(['function deposit() payable']),'deposit'),value:amount-held});
+ await buy(token,fee,amount);
+ const after=await call('TwapV3Pool',pool,'slot0'),observation=await call('TwapV3Pool',pool,'observations',[after[2]]);
+ check(after[1]!==slot[1]&&Math.abs(Number(after[1])-Number(slot[1]))<=3,'normal refresh swap moves the real pool by at most three ticks');
+ check(observation[3]&&observation[0]>oldObservation[0]&&(await pc.getBlock()).timestamp-BigInt(observation[0])<=1800n,'real pool records a fresh initialized oracle observation');
+}
 const minBatch=BigInt(plan.minBnkrBatch),cap=BigInt(plan.reviewedLimits.maxBnkrPerSwap),donation=(cap+minBatch)*2n;
 check(await balance(C.bnkr,actor)>donation,'fork-only donor can fund an over-cap queue');
 await write(C.bnkr,tokenAbi,'transfer',[H.collector,donation]);await write(H.collector,abi('StakedFeeCollector'),'collectAndDistribute',[],C.bankr);

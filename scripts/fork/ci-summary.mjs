@@ -16,6 +16,7 @@ export function publicFailure(stderr){
   categories:categories.filter(([,pattern])=>pattern.test(stderr)).map(([label])=>label),
   errorTypes:[...new Set(stderr.match(/\b(?:ContractFunctionExecutionError|ContractFunctionRevertedError|RpcRequestError|HttpRequestError|InvalidInputRpcError|UnknownRpcError|AssertionError|TypeError|SyntaxError)\b/g)??[])],
   sourceLocations:[...new Set([...stderr.matchAll(/\b((?:scripts\/(?:v3-migration|twap-keeper-v3-plan)|test\/v3-migration-fork\.test)\.mjs:\d+:\d+)/g)].map(m=>m[1]))],
+  guardRejections:['stale pool','thin liquidity','price deviation','input too large for liquidity','invalid observation','invalid liquidity history','invalid harmonic liquidity','pool locked/uninitialized','empty quote','quote overflow/zero'].filter(reason=>stderr.includes(reason)),
   rpcFailures:[...stderr.matchAll(/RPC_DIAGNOSTIC (\{[^\n]+\})/g)].flatMap(m=>{
    try{
     const x=JSON.parse(m[1]);if(!['eth_chainId','net_version','eth_blockNumber','eth_getBlockByNumber','eth_getBlockByHash','eth_getBalance','eth_getTransactionCount','eth_getCode','eth_getStorageAt','eth_getProof','eth_call','eth_getTransactionByHash','eth_getTransactionReceipt','eth_getLogs','eth_gasPrice'].includes(x.method))return [];
