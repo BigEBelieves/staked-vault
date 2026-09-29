@@ -6,6 +6,13 @@ Dual-reward staking for **$STAKED** on Base, funded by the STAKED/BNKR Uniswap v
 - Pair: STAKED / BNKR (Uniswap v4)
 - Rewards: **USDC** + **BNKR**, streamed continuously (7-day rolling periods)
 
+## Security migration status
+
+The Safe `0xb9066550918fa778a4039120eac878230cf8f6FC` is the administrative owner following the ownership migration.
+Legacy automation is disabled. This branch proposes helper contracts for fixed-destination fee collection,
+reward forwarding and Safe-bounded trading. **The new helpers are not deployed.**
+Read [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md) before enabling any keeper.
+
 ## Layout
 
 ```
@@ -13,7 +20,13 @@ contracts/StakedVault.sol            7-day lock, dual-reward vault, 20% early-ex
 contracts/StakedDistributor.sol      fee splitter + batched BNKR -> WETH -> USDC swap -> vault
 contracts/StakedBuybackExecutor.sol  USDC -> WETH -> BNKR (v3) -> STAKED (v4 PoolManager) buyback route
 contracts/test/Mocks.sol             mock ERC20 / router / buyback executor used by the tests
-test/vault.test.mjs                  66-case suite run on an in-process EVM (ethereumjs)
+contracts/StakedFeeCollector.sol     permissionless fee collection to fixed distributor
+contracts/StakedRewardRelay.sol      USDC/BNKR adapter for the existing vault
+contracts/StakedAutomationGuard.sol  Safe references, expiry, trade caps and total budgets
+contracts/StakedBoundedBuybackExecutor.sol guarded replacement buyback route
+test/vault.test.mjs                  original 66 checks on an in-process EVM (ethereumjs)
+test/automation.test.mjs             helper integration and adversarial checks
+scripts/prepare-keeper.mjs           pinned quotes and simulation; unsigned calldata only
 scripts/compile.mjs                  solc 0.8.24, optimizer 200, evm paris -> build/
 web/index.html                       standalone dapp (also copied to /index.html for GitHub Pages)
 DEPLOY.md                            deploy + wiring checklist
@@ -23,11 +36,11 @@ DEPLOY.md                            deploy + wiring checklist
 
 **$STAKED pool fees**
 - 50% burned to `0x000000000000000000000000000000000000dEaD`
-- 50% to the owner wallet for liquidity deepening
+- 50% to the configured liquidity wallet (Safe after migration)
 
 **BNKR pool fees**
-- 50% to the owner wallet -> staked in BNKR staking; the yield is relayed into the vault as the BNKR reward stream
-- 50% batched in the distributor until the minimum batch (~$100 BNKR), then swapped BNKR -> WETH -> USDC on Uniswap v3 and streamed to stakers
+- 50% to the configured BNKR staking wallet (Safe after migration); staking and yield deposits require separate action
+- 50% batched in the distributor until the configured minimum batch, then swapped BNKR -> WETH -> USDC on Uniswap v3 and streamed to stakers
 
 **Staking**
 - 7-day lock. Any top-up resets the 7-day timer for the wallet's whole balance.
@@ -39,17 +52,19 @@ DEPLOY.md                            deploy + wiring checklist
 ## Security properties
 
 - 1e36 reward precision (safe for 6-decimal USDC against a 100B-supply 18-decimal staking token)
-- `nonReentrant` on every state-changing entry point
-- `Ownable2Step` ownership on all contracts
-- Swaps and buybacks are keeper-gated and require a caller-supplied `minOut` (no zero-slippage swaps)
+- Reentrancy guards on asset-moving entry points
+- `Ownable2Step` on the original contracts; new helpers bind authority to the Safe
+- Legacy keeper-supplied minima alone do not protect against a compromised keeper; the proposed guard adds Safe-approved expiring floors and budgets
+- The replacement executor bounds the intermediate v3 output and v4 price, and rejects partial fills
+- No validated STAKED TWAP is included; the Safe must renew reference policies manually
 - `recoverERC20` can never touch STAKED, USDC or BNKR
 - Rewards streamed while nobody is staked are tracked and can be re-streamed permissionlessly
 
 ## Build & test
 
 ```
-npm install
-npm test      # compiles, then runs the 66-case suite
+npm ci
+npm test      # compiles, then runs original, helper and quote-planner tests
 ```
 
 ## Web app
@@ -60,7 +75,7 @@ Live: https://bigebelieves.github.io/staked-vault/
 
 ## Status
 
-**Deployed on Base mainnet (Sep 28, 2026).** Wired: vault -> distributor, keeper = owner, buyback executor set.
+**Original contracts deployed on Base mainnet (Sep 28, 2026).** Safe migration supersedes the original Bankr ownership. Re-read live state before use; proposed helpers remain undeployed.
 
 | Contract | Address |
 | --- | --- |
@@ -70,4 +85,4 @@ Live: https://bigebelieves.github.io/staked-vault/
 
 Compiler: solc 0.8.24, optimizer 200 runs, evm paris.
 
-Keeper automation (fee claim -> distribute -> swapAndNotify -> BNKR relay -> buyback) is the remaining piece; see `DEPLOY.md`.
+Deployment and verification: [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md). Updated keeper procedure: [KEEPER.md](KEEPER.md).

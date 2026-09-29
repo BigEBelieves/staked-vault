@@ -6,7 +6,7 @@
   "description": "$STAKED dual-reward staking vault + fee distributor on Base",
   "scripts": {
     "compile": "node scripts/compile.mjs",
-    "test": "node scripts/compile.mjs && node test/vault.test.mjs"
+    "test": "node scripts/compile.mjs && node test/vault.test.mjs && node test/automation.test.mjs && node --test test/keeper.test.mjs"
   },
   "devDependencies": {
     "@ethereumjs/block": "5.3.0",

@@ -1,55 +1,70 @@
-# Keeper runbook
+# Keeper runbook — guarded version, deployment pending
 
-The vault and distributor are live on Base and fully wired. A scheduled keeper (the owner wallet
-`0x1a3091097126d69a4f955051d4d018c1ae3cdcf8`, running through Bankr automation once a day at 14:00 UTC) pushes the loop
-below. All swap-type calls take a caller-supplied minimum output, so the keeper is the only party that can move value
-through a DEX and it always does so behind a slippage bound.
+**Keep the old jobs disabled.** The previous daily/hourly Bankr commands are retired. They relied
+on Bankr owning contracts, holding fee rights and using 3–5% quote tolerances. The Safe now owns
+those administrative rights; new helper contracts in this branch still require deployment and review.
+See [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md) for the complete wiring and test gates.
 
-| Contract | Address |
-|---|---|
-| StakedVault | `0x01b568eBCFb8c6db2Cf1c5f70c9b105f4187D92F` |
-| StakedDistributor | `0xDdf0eC9aA4d36eD07257187b524a8810c5BCF376` |
-| StakedBuybackExecutor | `0x290072cF64963D469a6be9d124D7328bf2992755` |
-| STAKED | `0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3` |
-| BNKR | `0x22af33fe49fd1fa80c7149773dde5890d3c76f3b` |
-| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+## Authority
 
-One-time setup (done Sep 28 2026): max approvals from the owner wallet
-`STAKED -> Distributor`, `BNKR -> Distributor`, `BNKR -> Vault`.
+- Safe: protocol owners, payout destination, helper authority, policy approvals and unpause.
+- Guard: the only automation keeper address configured on the existing vault and distributor.
+- Bankr: guard operator only; optionally a BNKR donor if the Safe separately authorizes it.
+- Collector: pool beneficiary after an explicit Safe transfer; anyone may trigger collection.
+- No unlimited approvals from Bankr or the Safe are needed for collecting or swapping pool fees.
 
-## Daily loop (automated, 14:00 UTC)
+## Safe-approved trading windows
 
-1. **Claim pool fees** — the $STAKED v4 pool pays the owner wallet in STAKED + BNKR (95% share). Claim through Bankr
-   (`claim_token_fees` on the STAKED address). Skip if claimable is dust (< 1,000 STAKED and < 100 BNKR).
-2. **Distribute** — `Distributor.depositAndDistribute(stakedWei, bnkrWei)` with exactly the claimed amounts.
-   Effect: 50% STAKED -> 0xdead, 50% STAKED -> liquidity wallet, 50% BNKR -> Bankr-staking wallet, 50% BNKR -> `pendingSwapBnkr`.
-3. **USDC leg** — if `Distributor.canSwap()` is true (`pendingSwapBnkr >= minBnkrBatch`, currently 60,000 BNKR ~ $25):
-   quote BNKR -> WETH -> USDC, set `minUsdcOut = quote * 0.97` (6 decimals), call `swapAndNotify(minUsdcOut)`.
-   The USDC lands in the vault and streams to stakers over the next 7 days.
-4. **BNKR staking leg (path A)** — stake whatever BNKR the distributor sent to the owner wallet into the Bankr staking
-   program (`stake`, never `restake_rewards`, so the 2x multiplier clock is not reset).
-5. **Relay staking yield** — claim BNKR rewards from Bankr staking (`claim_rewards`), then
-   `Vault.notifyRewardAmount(BNKR, amountWei)` from the owner wallet. Streams to $STAKED stakers over 7 days.
-   (Bankr weekly rewards had not started as of Sep 28 2026, so this leg is 0 until they do.)
-6. **Buyback and burn** — if `Vault.buybackReserve() >= 1 USDC`: quote USDC -> STAKED through the executor path
-   (USDC -> WETH -> BNKR on v3, BNKR -> STAKED on the v4 pool), set `minStakedOut = quote * 0.95`, call
-   `Vault.executeBuyback(reserve, minStakedOut)`. Delivered STAKED is burned to 0xdead inside the call.
-7. **Restream** — if `Vault.totalSupply() > 0` and `rewardData(token).undistributed > 0` for USDC or BNKR, call
-   `restreamUndistributed(token)` (permissionless) so rewards that streamed while nobody was staked are not stranded.
-8. **Gas** — keep the keeper wallet above ~0.002 ETH on Base.
+Each policy expires within one hour, sets at most 1% slippage from three independently reviewed
+reference quotes, caps each trade, caps total spending, and specifies an absolute v4 price boundary.
+Expiry or exhausted budgets stop execution. Only the Safe can renew. This version does not provide
+unattended oracle updates, and the policy is not a TWAP.
 
-## Thresholds and knobs (owner only)
+## Loop after deployment
 
-- `Distributor.setMinBnkrBatch(wei)` — USDC-leg batch size. History: 240,000 BNKR (~$100) at deploy, lowered to
-  60,000 BNKR (~$25) on Sep 28 2026 (tx `0x62eee832a3749d9a325ca49346cbfd51cbaa812813cd7c13552bafbbb46e415a`).
-  Raise again anytime as volume grows.
-- `Distributor.setPoolFees(bnkrWethFee, wethUsdcFee)` — v3 fee tiers on the swap path (1% / 0.05% today).
-- `Vault.setRewardsDuration(seconds)` — stream length, only when both streams are finished.
-- `Vault.setKeeper / Distributor.setKeeper` — hand the loop to a dedicated bot wallet later.
+1. Trigger `collector.collectAndDistribute()`. No swap occurs. Fee splits go to burn, Safe and queue.
+2. Read `pendingSwapBnkr`, policy, remaining budget, pause state and nonce. If the full queue exceeds
+   its cap, skip and request Safe review. The existing distributor cannot partially drain the queue.
+3. For distribution, quote BNKR -> WETH -> USDC and simulate the guard call at a single latest block.
+4. For buyback, choose a reserve amount within both caps. Quote USDC -> WETH -> BNKR and then the
+   v4 BNKR -> STAKED leg at that same block. Simulate the complete guard/vault/executor call, including
+   the real hook and the Safe price limit. Inability to fill the complete input causes a revert.
+5. Use the greater of the Safe floor and a fresh quote discounted by at most 1% (default 0.5%).
+   Check head again immediately before signing. Every successful call consumes a nonce; prepare
+   distribution and buyback separately. A changed head or batch requires a new quote.
+6. Sign using the limited operator and submit through a provider verified to support Base private
+   transactions. Use that provider's required submission method. Never fall back to public submission.
+   Check head/deadline again after wallet signing; abandon expired calldata and requote.
+7. Verify receipt status and token flows: USDC rewards into original vault, buyback STAKED to burn,
+   exact reserve decrement, expected budgets, and zero allowances. Reverted calls consume no budget.
+8. Staking Safe-held BNKR and handling the old Bankr-owned staking position are separate operations.
+   The relay only deposits BNKR already owned by its caller. It does not claim external staking yield.
 
-## First pass (Sep 28 2026)
+## Unsigned quote planner
 
-- Claimed 15,344.06 STAKED + 0.00996 BNKR, `depositAndDistribute` executed:
-  7,672.03 STAKED burned, 7,672.03 STAKED to liquidity wallet, 0.00498 BNKR to staking wallet, 0.00498 BNKR queued.
-- Swap / stake / relay / buyback legs skipped: all below thresholds.
-- Daily automation created; first scheduled run Sep 29 2026 14:00 UTC.
+Build first with `npm run compile`. Configure these environment variables locally:
+
+- `PRIVATE_BASE_RPC_URL`: provider endpoint, independently checked for Base support and privacy.
+- `GUARD_ADDRESS`: verified new guard.
+- `V3_QUOTER_ADDRESS`: verified Base Uniswap QuoterV2.
+- `V4_QUOTER_ADDRESS`: verified Base Uniswap V4Quoter (required for buyback).
+- `SLIPPAGE_BPS`: optional, default 50, maximum 100.
+
+```sh
+node scripts/prepare-keeper.mjs distribute
+node scripts/prepare-keeper.mjs buyback 1000000
+```
+
+The second command prepares a 1-USDC buyback (6 decimals). It does not recommend that trade size.
+Both commands only print unsigned calldata and quote metadata; no private keys are read and no
+transaction is sent. Sign/submit immediately through the operator integration after rechecking
+head, deadline and nonce. A saved plan is not a reusable schedule or perpetual authorization.
+
+A fresh quote is not a guaranteed execution price or same-block inclusion. The contract accepts
+at most two blocks of delay, and its independent Safe floor still applies if the keeper lies about
+the quote. Private submission reduces exposure but does not replace price bounds or ensure execution.
+
+## Pause
+
+Operator may call `guard.setPaused(true)`; only Safe may unpause. Safe may also zero the operator
+and both legacy keeper fields. Do not restore Bankr directly as a legacy keeper.
