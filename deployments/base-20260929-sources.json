@@ -1,0 +1,118 @@
+[
+  {
+    "name": "StakedRewardRelay",
+    "address": "0x0489c70E4C51F1518f3514728CDfB77F6a4A2C88",
+    "job": "19507417-80a8-4f7c-b413-31b6434e7c07",
+    "result": {
+      "isJobCompleted": true,
+      "verificationId": "19507417-80a8-4f7c-b413-31b6434e7c07",
+      "jobStartTime": "2026-09-29T04:09:54Z",
+      "jobFinishTime": "2026-09-29T04:09:54Z",
+      "compilationTime": "183",
+      "externalVerifications": {
+        "etherscan": {
+          "error": "Daily limit of 500 source code submissions reached"
+        },
+        "blockscout": {
+          "error": "Explorer verification request failed (429): {\"message\":\"Too many requests. Increase limits now at https://dev.blockscout.com\",\"result\":null,\"status\":\"0\"}"
+        }
+      },
+      "contract": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match",
+        "chainId": "8453",
+        "address": "0x0489c70E4C51F1518f3514728CDfB77F6a4A2C88",
+        "verifiedAt": "2026-09-29T04:09:54Z",
+        "matchId": "53803898"
+      }
+    }
+  },
+  {
+    "name": "StakedAutomationGuard",
+    "address": "0x2962643Fe17228D05bB51f71378e6d258b96848e",
+    "job": "573fa71a-3f06-4724-9bf2-669074ef7720",
+    "result": {
+      "isJobCompleted": true,
+      "verificationId": "573fa71a-3f06-4724-9bf2-669074ef7720",
+      "jobStartTime": "2026-09-29T04:10:02Z",
+      "jobFinishTime": "2026-09-29T04:10:03Z",
+      "compilationTime": "446",
+      "externalVerifications": {
+        "etherscan": {
+          "error": "Daily limit of 500 source code submissions reached"
+        },
+        "blockscout": {
+          "error": "Explorer verification request failed (429): {\"message\":\"Too many requests. Increase limits now at https://dev.blockscout.com\",\"result\":null,\"status\":\"0\"}"
+        }
+      },
+      "contract": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match",
+        "chainId": "8453",
+        "address": "0x2962643Fe17228D05bB51f71378e6d258b96848e",
+        "verifiedAt": "2026-09-29T04:10:03Z",
+        "matchId": "53803904"
+      }
+    }
+  },
+  {
+    "name": "StakedBoundedBuybackExecutor",
+    "address": "0xEfDdAECA280FdAD3ce8aF2A42177E1fF5925a8B5",
+    "job": "ad23c08d-0115-4cda-b6e2-6440f1c260b2",
+    "result": {
+      "isJobCompleted": true,
+      "verificationId": "ad23c08d-0115-4cda-b6e2-6440f1c260b2",
+      "jobStartTime": "2026-09-29T04:10:13Z",
+      "jobFinishTime": "2026-09-29T04:10:13Z",
+      "compilationTime": "558",
+      "externalVerifications": {
+        "etherscan": {
+          "error": "Daily limit of 500 source code submissions reached"
+        },
+        "blockscout": {
+          "error": "Explorer verification request failed (429): {\"message\":\"Too many requests. Increase limits now at https://dev.blockscout.com\",\"result\":null,\"status\":\"0\"}"
+        }
+      },
+      "contract": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match",
+        "chainId": "8453",
+        "address": "0xEfDdAECA280FdAD3ce8aF2A42177E1fF5925a8B5",
+        "verifiedAt": "2026-09-29T04:10:13Z",
+        "matchId": "53803906"
+      }
+    }
+  },
+  {
+    "name": "StakedFeeCollector",
+    "address": "0xb6F61e30420bad8F5C636E8DDFFba61a90167393",
+    "job": "ee01aebe-1065-41a8-8ea5-2a83e554e6ad",
+    "result": {
+      "isJobCompleted": true,
+      "verificationId": "ee01aebe-1065-41a8-8ea5-2a83e554e6ad",
+      "jobStartTime": "2026-09-29T04:10:25Z",
+      "jobFinishTime": "2026-09-29T04:10:25Z",
+      "compilationTime": "196",
+      "externalVerifications": {
+        "etherscan": {
+          "error": "Daily limit of 500 source code submissions reached"
+        },
+        "blockscout": {
+          "error": "Explorer verification request failed (429): {\"message\":\"Too many requests. Increase limits now at https://dev.blockscout.com\",\"result\":null,\"status\":\"0\"}"
+        }
+      },
+      "contract": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match",
+        "chainId": "8453",
+        "address": "0xb6F61e30420bad8F5C636E8DDFFba61a90167393",
+        "verifiedAt": "2026-09-29T04:10:25Z",
+        "matchId": "53803937"
+      }
+    }
+  }
+]

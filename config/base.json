@@ -1,0 +1,29 @@
+{
+  "chainId": 8453,
+  "safe": "0xb9066550918fa778a4039120eac878230cf8f6fc",
+  "bankr": "0x1a3091097126d69a4f955051d4d018c1ae3cdcf8",
+  "vault": "0x01b568ebcfb8c6db2cf1c5f70c9b105f4187d92f",
+  "distributor": "0xddf0ec9aa4d36ed07257187b524a8810c5bcf376",
+  "legacyExecutor": "0x290072cf64963d469a6be9d124d7328bf2992755",
+  "staked": "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3",
+  "bnkr": "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b",
+  "usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  "weth": "0x4200000000000000000000000000000000000006",
+  "v3Router": "0x2626664c2603336e57b271c5c0b26f421741e481",
+  "poolManager": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+  "initializer": "0xbdf938149ac6a781f94faa0ed45e6a0e984c6544",
+  "poolId": "0xafdf42085135953cf6d870d49669886a237e545ba62acb635a3d3d950856fb08",
+  "poolKey": {
+    "currency0": "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b",
+    "currency1": "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3",
+    "fee": 8388608,
+    "tickSpacing": 200,
+    "hooks": "0xbdf938149ac6a781f94faa0ed45e6a0e984c6544"
+  },
+  "feeUsdcWeth": 500,
+  "feeWethBnkr": 10000,
+  "v3Quoter": "0x3d4e44eb1374240ce5f1b871ab261cd16335b76a",
+  "v4Quoter": "0x0d5e0f971ed27fbff6c2837bf31316121532048d",
+  "stateView": "0xa3c0c9b65bad0b08107aa264b0f3db444b867a71",
+  "multiSendCallOnly": "0x9641d764fc13c8b624c04430c7356c1c7c8102e2"
+}

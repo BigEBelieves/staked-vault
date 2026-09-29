@@ -1,0 +1,225 @@
+{
+  "status": "prepared and simulated; NOT executed on Base",
+  "sourceBranchCommit": "75bd5c8e97567ff860d080fb9c8803fdd53314b4",
+  "batchFileName": "Staked-Safe-Move-Fees-to-Collector.json",
+  "preflight": {
+    "stage": "fees",
+    "block": "51944962",
+    "blockHash": "0x0497d0ac1dda0043b3517f3d9a2d9842cd604cc87381d85932296c778ca5bf38",
+    "timestamp": "1790679271",
+    "safe": "0xb9066550918fa778a4039120eac878230cf8f6fc",
+    "safeNonce": "5",
+    "owners": [
+      "0xa741dAd09fFF5de643283142eD339b9F0b52b146",
+      "0x7690f887a6aFe5fc27BD9B4D67C76a83ab44E1a4",
+      "0x52d53D2bb353d63f85655C26163f535EAEaBDb09"
+    ],
+    "shares": {
+      "safe": "950000000000000000",
+      "bankr": "0",
+      "collector": "0",
+      "other": "50000000000000000"
+    },
+    "deployments": [
+      {
+        "name": "StakedRewardRelay",
+        "address": "0x0489c70E4C51F1518f3514728CDfB77F6a4A2C88",
+        "hash": "0x2e92ebbcf0ed7c391e85d40ee7c013bc388d4477c4527a7f9aeef6f3924a99a3",
+        "block": "51932597",
+        "runtimeHash": "0x2fe2a67ffd3aa4880e01eabd612550624c03f22afc1a1321c8908aaee1679713"
+      },
+      {
+        "name": "StakedAutomationGuard",
+        "address": "0x2962643Fe17228D05bB51f71378e6d258b96848e",
+        "hash": "0x1d38eb669a7b417bf44d436eb24b5436ddac9b2a083de71cc14ab3c6c0f4263b",
+        "block": "51932612",
+        "runtimeHash": "0xb32bf1895087e1ca68a998761f7ff53ad57ef9c3ea955c8f05104126155dfbbf"
+      },
+      {
+        "name": "StakedBoundedBuybackExecutor",
+        "address": "0xEfDdAECA280FdAD3ce8aF2A42177E1fF5925a8B5",
+        "hash": "0x77316780622c9c17c7528115b6995532efa7e62ddf0f768390af14cdc8d4945e",
+        "block": "51932631",
+        "runtimeHash": "0x041c5b70ed5bf53626df21a7350bc4f3ab75e3d96a81f81befe435c567165e3a"
+      },
+      {
+        "name": "StakedFeeCollector",
+        "address": "0xb6F61e30420bad8F5C636E8DDFFba61a90167393",
+        "hash": "0x48a6b1b6195a561685b1cebab91f7d08f657bcf51755c9e802ad0ff2ddbaf1e0",
+        "block": "51932657",
+        "runtimeHash": "0xa118a3a632e41acab87178f594c84e8ab0c624a198943c4b4835e9d0b111bf82"
+      }
+    ],
+    "batchHash": "0x83063916a9087d575769b1e0b700bd11bb8844a16ec8b834abcce6fd8646b27d",
+    "decodedCalls": [
+      {
+        "to": "0xbdf938149ac6a781f94faa0ed45e6a0e984c6544",
+        "value": "0",
+        "functionName": "collectFees",
+        "args": [
+          "0xafdf42085135953cf6d870d49669886a237e545ba62acb635a3d3d950856fb08"
+        ]
+      },
+      {
+        "to": "0xbdf938149ac6a781f94faa0ed45e6a0e984c6544",
+        "value": "0",
+        "functionName": "updateBeneficiary",
+        "args": [
+          "0xafdf42085135953cf6d870d49669886a237e545ba62acb635a3d3d950856fb08",
+          "0xb6F61e30420bad8F5C636E8DDFFba61a90167393"
+        ]
+      }
+    ],
+    "multiSend": "0xA83c336B20401Af773B6219BA5027174338D1836",
+    "multiSendRuntimeHash": "0xcdbdcec38d2f1c7d961b0029ff8416b7e86e9974d6f0e9c9580c7d17fcfb6663"
+  },
+  "simulation": {
+    "mode": "isolated local Base fork only",
+    "baseBlock": "51944962",
+    "baseBlockHash": "0x0497d0ac1dda0043b3517f3d9a2d9842cd604cc87381d85932296c778ca5bf38",
+    "anvil": "anvil/v1.7.1",
+    "safe": "0xb9066550918fa778a4039120eac878230cf8f6fc",
+    "safeNonce": "5",
+    "multiSend": "0xA83c336B20401Af773B6219BA5027174338D1836",
+    "multiSendRuntimeHash": "0xcdbdcec38d2f1c7d961b0029ff8416b7e86e9974d6f0e9c9580c7d17fcfb6663",
+    "safeTxHash": "0x5033810b645bd8cbebe18f061c0bf09c89ac5edbd44867ffb33a3e01329cce92",
+    "batchHash": "0x83063916a9087d575769b1e0b700bd11bb8844a16ec8b834abcce6fd8646b27d",
+    "simulationSucceeded": true,
+    "calls": [
+      {
+        "to": "0xbdf938149ac6a781f94faa0ed45e6a0e984c6544",
+        "value": "0",
+        "functionName": "collectFees",
+        "args": [
+          "0xafdf42085135953cf6d870d49669886a237e545ba62acb635a3d3d950856fb08"
+        ]
+      },
+      {
+        "to": "0xbdf938149ac6a781f94faa0ed45e6a0e984c6544",
+        "value": "0",
+        "functionName": "updateBeneficiary",
+        "args": [
+          "0xafdf42085135953cf6d870d49669886a237e545ba62acb635a3d3d950856fb08",
+          "0xb6F61e30420bad8F5C636E8DDFFba61a90167393"
+        ]
+      }
+    ],
+    "changedGetters": [
+      {
+        "address": "0xb9066550918fa778a4039120eac878230cf8f6fc",
+        "functionName": "nonce",
+        "args": [],
+        "before": "5",
+        "after": "6"
+      },
+      {
+        "address": "0xbdf938149ac6a781f94faa0ed45e6a0e984c6544",
+        "functionName": "getShares",
+        "args": [
+          "0xafdf42085135953cf6d870d49669886a237e545ba62acb635a3d3d950856fb08",
+          "0xb9066550918fa778a4039120eac878230cf8f6fc"
+        ],
+        "before": "950000000000000000",
+        "after": "0"
+      },
+      {
+        "address": "0xbdf938149ac6a781f94faa0ed45e6a0e984c6544",
+        "functionName": "getShares",
+        "args": [
+          "0xafdf42085135953cf6d870d49669886a237e545ba62acb635a3d3d950856fb08",
+          "0xb6F61e30420bad8F5C636E8DDFFba61a90167393"
+        ],
+        "before": "0",
+        "after": "950000000000000000"
+      }
+    ],
+    "feePayouts": {
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0xb9066550918fa778a4039120eac878230cf8f6fc": "919116543060362817900867",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x21e2ce70511e4fe542a97708e89520471daa7a66": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0xb9066550918fa778a4039120eac878230cf8f6fc": "593560732118822925",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x21e2ce70511e4fe542a97708e89520471daa7a66": "0"
+    },
+    "balancesBefore": {
+      "reserve": "0",
+      "totalStaked": "522194000000000000000000000",
+      "queuedBnkr": "4982213374944607",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0xb9066550918fa778a4039120eac878230cf8f6fc": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x1a3091097126d69a4f955051d4d018c1ae3cdcf8": "1157455454752511715985425252",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x21e2ce70511e4fe542a97708e89520471daa7a66": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x01b568ebcfb8c6db2cf1c5f70c9b105f4187d92f": "522194000000000000000000000",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0xddf0ec9aa4d36ed07257187b524a8810c5bcf376": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x0489c70e4c51f1518f3514728cdfb77f6a4a2c88": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x2962643fe17228d05bb51f71378e6d258b96848e": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0xefddaeca280fdad3ce8af2a42177e1ff5925a8b5": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0xb6f61e30420bad8f5c636e8ddffba61a90167393": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0xb9066550918fa778a4039120eac878230cf8f6fc": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x1a3091097126d69a4f955051d4d018c1ae3cdcf8": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x21e2ce70511e4fe542a97708e89520471daa7a66": "336811712240092947008",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x01b568ebcfb8c6db2cf1c5f70c9b105f4187d92f": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0xddf0ec9aa4d36ed07257187b524a8810c5bcf376": "4982213374944607",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x0489c70e4c51f1518f3514728cdfb77f6a4a2c88": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x2962643fe17228d05bb51f71378e6d258b96848e": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0xefddaeca280fdad3ce8af2a42177e1ff5925a8b5": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0xb6f61e30420bad8f5c636e8ddffba61a90167393": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0xb9066550918fa778a4039120eac878230cf8f6fc": "9000",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x1a3091097126d69a4f955051d4d018c1ae3cdcf8": "20089590",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x21e2ce70511e4fe542a97708e89520471daa7a66": "11443555042",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x01b568ebcfb8c6db2cf1c5f70c9b105f4187d92f": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0xddf0ec9aa4d36ed07257187b524a8810c5bcf376": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x0489c70e4c51f1518f3514728cdfb77f6a4a2c88": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x2962643fe17228d05bb51f71378e6d258b96848e": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0xefddaeca280fdad3ce8af2a42177e1ff5925a8b5": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0xb6f61e30420bad8f5c636e8ddffba61a90167393": "0"
+    },
+    "balancesAfter": {
+      "reserve": "0",
+      "totalStaked": "522194000000000000000000000",
+      "queuedBnkr": "4982213374944607",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0xb9066550918fa778a4039120eac878230cf8f6fc": "919116543060362817900867",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x1a3091097126d69a4f955051d4d018c1ae3cdcf8": "1157455454752511715985425252",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x21e2ce70511e4fe542a97708e89520471daa7a66": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x01b568ebcfb8c6db2cf1c5f70c9b105f4187d92f": "522194000000000000000000000",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0xddf0ec9aa4d36ed07257187b524a8810c5bcf376": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x0489c70e4c51f1518f3514728cdfb77f6a4a2c88": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0x2962643fe17228d05bb51f71378e6d258b96848e": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0xefddaeca280fdad3ce8af2a42177e1ff5925a8b5": "0",
+      "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3:0xb6f61e30420bad8f5c636e8ddffba61a90167393": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0xb9066550918fa778a4039120eac878230cf8f6fc": "593560732118822925",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x1a3091097126d69a4f955051d4d018c1ae3cdcf8": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x21e2ce70511e4fe542a97708e89520471daa7a66": "336811712240092947008",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x01b568ebcfb8c6db2cf1c5f70c9b105f4187d92f": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0xddf0ec9aa4d36ed07257187b524a8810c5bcf376": "4982213374944607",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x0489c70e4c51f1518f3514728cdfb77f6a4a2c88": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0x2962643fe17228d05bb51f71378e6d258b96848e": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0xefddaeca280fdad3ce8af2a42177e1ff5925a8b5": "0",
+      "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b:0xb6f61e30420bad8f5c636e8ddffba61a90167393": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0xb9066550918fa778a4039120eac878230cf8f6fc": "9000",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x1a3091097126d69a4f955051d4d018c1ae3cdcf8": "20089590",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x21e2ce70511e4fe542a97708e89520471daa7a66": "11443555042",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x01b568ebcfb8c6db2cf1c5f70c9b105f4187d92f": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0xddf0ec9aa4d36ed07257187b524a8810c5bcf376": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x0489c70e4c51f1518f3514728cdfb77f6a4a2c88": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0x2962643fe17228d05bb51f71378e6d258b96848e": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0xefddaeca280fdad3ce8af2a42177e1ff5925a8b5": "0",
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913:0xb6f61e30420bad8f5c636e8ddffba61a90167393": "0"
+    },
+    "reserveAndStakedSupplyAndQueuedBnkrUnchanged": true,
+    "guardPaused": true,
+    "operator": "0x0000000000000000000000000000000000000000",
+    "budgetsZero": true,
+    "otherFeeShareUnchanged": true,
+    "bankrSharesAndAllowancesZero": true,
+    "collectorAllowancesZero": true,
+    "safeOwnersAndThresholdUnchanged": true,
+    "localExecutionGas": "444390",
+    "liveRecheckBlock": "51945504",
+    "liveSafeNonceAfterSimulation": "5",
+    "liveTransactionSent": false,
+    "limitations": [
+      "Owner approvals were impersonated only on the isolated fork; execution on Base requires two real Safe-owner signatures.",
+      "Current accrued fees may change before execution. Refresh the Safe simulation and review the nonce before signing; this batch has no on-chain expiry.",
+      "After execution anyone can trigger collector collection/distribution along its fixed route. Trading still requires a separately enabled guard policy.",
+      "Independent security review remains outstanding. This simulation is not an audit."
+    ]
+  }
+}

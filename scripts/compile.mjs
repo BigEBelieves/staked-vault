@@ -13,7 +13,7 @@ const input = {
   settings: {
     optimizer: { enabled: true, runs: 200 },
     evmVersion: 'paris',
-    outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object'] } },
+    outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object', 'evm.deployedBytecode.immutableReferences'] } },
   },
 };
 const out = JSON.parse(solc.compile(JSON.stringify(input)));
@@ -21,10 +21,12 @@ const errors = (out.errors || []).filter((e) => e.severity === 'error');
 for (const e of out.errors || []) console.error(e.formattedMessage);
 if (errors.length) process.exit(1);
 mkdirSync('build', { recursive: true });
+writeFileSync('build/standard-input.json', JSON.stringify(input, null, 2));
 const all = {};
 for (const file of Object.keys(out.contracts)) {
   for (const [name, c] of Object.entries(out.contracts[file])) {
-    all[name] = { abi: c.abi, bytecode: '0x' + c.evm.bytecode.object, deployedBytecode: '0x' + c.evm.deployedBytecode.object };
+    all[name] = { abi: c.abi, bytecode: '0x' + c.evm.bytecode.object, deployedBytecode: '0x' + c.evm.deployedBytecode.object,
+      immutableReferences: c.evm.deployedBytecode.immutableReferences };
     writeFileSync(join('build', name + '.json'), JSON.stringify(all[name], null, 2));
   }
 }
