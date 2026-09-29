@@ -113,7 +113,7 @@ export async function verifyDeployments(client,C,A,plan,hashes) {
 }
 
 export async function prepareSafeBatch(client,C,A,plan,hashes,stage) {
-  assert(['wire','fees','rollback'].includes(stage),'Unknown stage');
+  assert(['wire','fees','operator','rollback'].includes(stage),'Unknown stage');
   const {block,receipts,read} = await verifyDeployments(client,C,A,plan,hashes);
   const H = plan.addresses;
   const owners = await read(C.safe,safeAbi,'getOwners');
@@ -133,8 +133,8 @@ export async function prepareSafeBatch(client,C,A,plan,hashes,stage) {
   equal(shares.bankr,0n,'Bankr fee rights');
   equal(shares.other,50000000000000000n,'Other beneficiary share changed');
   if (stage !== 'rollback') {
-    equal(shares.safe,SHARE,'Safe must still own 95% before this stage');
-    equal(shares.collector,0n,'Collector already owns fees');
+    equal(shares.safe,stage==='operator'?0n:SHARE,stage==='operator'?'Fee migration must be complete':'Safe must still own 95% before this stage');
+    equal(shares.collector,stage==='operator'?SHARE:0n,stage==='operator'?'Collector must own 95%':'Collector already owns fees');
     equal(await call('StakedAutomationGuard',H.guard,'paused'),true,'Guard must remain paused');
     equal(await call('StakedAutomationGuard',H.guard,'operator'),ZERO,'Operator must remain disabled');
     for (const fn of ['remainingBnkr','remainingUsdc']) equal(await call('StakedAutomationGuard',H.guard,fn),0n,'No active budget');
@@ -173,6 +173,9 @@ export async function prepareSafeBatch(client,C,A,plan,hashes,stage) {
   } else if (stage === 'fees') {
     for (const [functionName,args] of [['collectFees',[C.poolId]],['updateBeneficiary',[C.poolId,H.collector]]])
       transactions.push({to:C.initializer,value:'0',data:encodeFunctionData({abi:feeAbi,functionName,args})});
+  } else if (stage === 'operator') {
+    // Configuration only: no policy, budget, unpause, swap, approval or token transfer.
+    add('StakedAutomationGuard',H.guard,'setOperator',[C.bankr]);
   } else {
     add('StakedAutomationGuard',H.guard,'setPaused',[true]);
     add('StakedAutomationGuard',H.guard,'setOperator',[ZERO]);

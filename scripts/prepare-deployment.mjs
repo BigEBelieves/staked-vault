@@ -6,7 +6,7 @@ import { createDeploymentPlan, prepareSafeBatch, verifyDeployments, json } from 
 const usage = `Usage (all commands are read-only):
   npm run prepare:deployment -- plan DEPLOYER OUTPUT.json
   npm run prepare:deployment -- verify PLAN.json RECEIPT-HASHES.json
-  npm run prepare:deployment -- batch wire|fees|rollback PLAN.json RECEIPT-HASHES.json OUTPUT.json
+  npm run prepare:deployment -- batch wire|fees|operator|rollback PLAN.json RECEIPT-HASHES.json OUTPUT.json
 Set BASE_READ_RPC_URL. Hashes file: four transaction hashes in plan order.
 Only direct CREATE deployments from an ordinary EOA are supported; no Safe/factory/AA deployment.`;
 const load = path => JSON.parse(readFileSync(path,'utf8'));
