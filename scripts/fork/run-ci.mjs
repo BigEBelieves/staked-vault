@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {createInterface} from 'node:readline';
 import {publicSummary,publicFailure} from './ci-summary.mjs';
-const providers=['https://mainnet.base.org','https://base-rpc.publicnode.com'];
+const providers=['https://base-rpc.publicnode.com','https://mainnet.base.org'];
 const C=JSON.parse(readFileSync('config/base.json'));
 function rpc(endpoint,method,params){
  assert(['eth_chainId','eth_getBlockByNumber','eth_call'].includes(method));

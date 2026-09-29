@@ -16,6 +16,7 @@ const version=await pc.request({method:'web3_clientVersion'});assert.match(versi
 const node=await pc.request({method:'anvil_nodeInfo'}),forkBlock=BigInt(process.env.BASE_FORK_BLOCK);
 assert.equal(BigInt(node.forkConfig.forkBlockNumber),forkBlock);assert.equal(await pc.getBlockNumber(),forkBlock);
 const upstream=createPublicClient({chain:base,transport:http(process.env.UPSTREAM_READ_RPC_URL,{timeout:120000,retryCount:0}),cacheTime:0});
+console.log('[migration] read and reconcile pinned Base accounting state');
 const snapshot=await snapshotMigration(upstream,C,A,forkBlock);
 const report={mode:'LOCAL FORK ONLY — no live writes',block:forkBlock,blockHash:snapshot.blockHash,anvil:version,snapshot,
  fixtures:['Native ETH increased and a fixed local gas price used; real EOA Safe owners impersonated only on Anvil.',

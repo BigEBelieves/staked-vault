@@ -5,6 +5,7 @@ import hashlib
 import json
 import subprocess
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -20,7 +21,7 @@ allowed = {'eth_chainId', 'net_version', 'eth_blockNumber', 'eth_getBlockByNumbe
            'eth_getBlockByHash', 'eth_getBalance', 'eth_getTransactionCount', 'eth_getCode',
            'eth_getStorageAt', 'eth_getProof', 'eth_call', 'eth_getTransactionByHash',
            'eth_getTransactionReceipt', 'eth_getLogs', 'eth_gasPrice'}
-limit = threading.Semaphore(4)
+limit = threading.Semaphore(1)
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *unused):
@@ -41,7 +42,9 @@ class Handler(BaseHTTPRequestHandler):
         payload = json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params})
         with limit:
             print(method, 'fetch', flush=True)
-            for _ in range(3):
+            for attempt in range(3):
+                # Public read providers need bounded pacing, including retries.
+                time.sleep(0.25 if attempt == 0 else 2 ** (attempt - 1))
                 response = subprocess.run(['curl', '-fsS', '--max-time', '20', args.url,
                     '-H', 'Content-Type: application/json', '--data', payload], capture_output=True, text=True)
                 try:
@@ -51,10 +54,21 @@ class Handler(BaseHTTPRequestHandler):
                             filename.write_text(json.dumps(result))
                         result['id'] = request.get('id')
                         return result
-                    if result.get('error', {}).get('code') != -32016:
+                    error = result.get('error', {})
+                    if error.get('code') in {-32016, -32005, 429} or any(word in str(error.get('message', '')).lower() for word in ['rate limit', 'too many requests']):
+                        print('RPC read rate limit; retrying', flush=True)
+                        continue
+                    if 'error' in result:
+                        print('RPC read rejected with JSON error code '+str(error.get('code') if isinstance(error.get('code'), int) else 'unknown'), flush=True)
                         result['id'] = request.get('id')
                         return result
                 except (ValueError, TypeError):
+                    if '429' in response.stderr:
+                        print('RPC read HTTP rate limit; retrying', flush=True)
+                    elif response.returncode == 28:
+                        print('RPC read connection timeout; retrying', flush=True)
+                    else:
+                        print('RPC read transport failed; retrying', flush=True)
                     continue
         return {'jsonrpc': '2.0', 'id': request.get('id'), 'error': {'code': -32000, 'message': 'Read-only upstream failed'}}
 
