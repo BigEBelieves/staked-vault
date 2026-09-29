@@ -1,0 +1,32 @@
+name: V3 read-only Base-fork rehearsal
+on:
+  push:
+    branches: [validation/v3-base-fork]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: staked-v3-fork-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  rehearse:
+    if: github.ref == 'refs/heads/validation/v3-base-fork'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+      - name: Install locked test dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Install pinned Anvil binary without lifecycle scripts
+        run: npm ci --ignore-scripts --prefix scripts/fork/anvil
+      - name: Compile the reviewed contracts
+        run: node scripts/compile.mjs
+      - name: Check public-summary validation and privacy
+        run: node --test test/ci-summary.test.mjs
+      - name: Run the local fork and publish only redacted evidence
+        run: node scripts/fork/run-ci.mjs
