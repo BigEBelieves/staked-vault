@@ -8,6 +8,7 @@
     "compile": "node scripts/compile.mjs",
     "test": "node scripts/compile.mjs && node test/vault.test.mjs && node test/automation.test.mjs && node --test test/keeper.test.mjs test/deployment.test.mjs",
     "prepare:deployment": "node scripts/compile.mjs && node scripts/prepare-deployment.mjs",
+    "test:deployment-page": "node --test test/deployment-page.test.mjs",
     "test:fork": "node scripts/compile.mjs && node scripts/fork/run.mjs"
   },
   "devDependencies": {

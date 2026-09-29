@@ -24,6 +24,14 @@ The standard JSON file contains the exact source and compiler settings for sourc
 Solidity **0.8.24**, optimizer **200**, EVM **Paris**. Each helper has its own contract name and
 constructor arguments in the plan. Publish and verify all four sources after deployment.
 
+### Optional deployment-only Rabby page
+
+The separate [`deployment/`](deployment/) utility supports one wallet-approved creation at a time
+from the pinned plan. It simulates each creation and verifies receipts/code before enabling the next.
+It permits deployment of inactive helpers before independent review; it does not perform the live
+Safe migration or activate trading. Review remains outstanding, and deploying code does not certify
+its safety. See its README for recovery behavior and the exact source commit pinned in the payload.
+
 ## 2. Prepare deployment calldata
 
 Use a separate ordinary EOA that can send **direct CREATE transactions** on Base. It only needs
