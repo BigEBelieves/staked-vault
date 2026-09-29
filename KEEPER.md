@@ -1,18 +1,19 @@
-# Keeper runbook — helpers deployed, activation pending
+# Keeper runbook — helpers connected, trading paused
 
 **Keep the old jobs disabled.** The previous daily/hourly Bankr commands are retired. They relied
 on Bankr owning contracts, holding fee rights and using 3–5% quote tolerances. The Safe now owns
-those administrative rights; the four helper contracts are deployed but still require Safe wiring and review before activation.
+those administrative rights; the relay, guard and executor are connected, but the guard is paused with no operator or budget.
+The collector still has no fee rights. Review and activation remain outstanding.
 See [DEPLOY.md](DEPLOY.md) for the deployment record.
 See [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md) for the complete wiring and test gates.
 See [PRIVATE-SUBMISSION.md](PRIVATE-SUBMISSION.md) for documented Base submission options and
 the still-unverified provider/Bankr signing requirements. No sender is implemented in this branch.
 
-## Intended authority after wiring
+## Authority and remaining activation steps
 
 - Safe: protocol owners, payout destination, helper authority, policy approvals and unpause.
 - Guard: the only automation keeper address configured on the existing vault and distributor.
-- Bankr: guard operator only; optionally a BNKR donor if the Safe separately authorizes it.
+- Bankr: operator remains unset. Any future operator role must be limited to the guard; a BNKR donor role needs separate Safe authorization.
 - Collector: pool beneficiary after an explicit Safe transfer; anyone may trigger collection.
 - No unlimited approvals from Bankr or the Safe are needed for collecting or swapping pool fees.
 

@@ -1,7 +1,8 @@
-# Deployment tooling — helpers deployed, wiring pending
+# Deployment tooling — helpers connected, trading paused
 
 The four helpers were deployed on Base on September 29, 2026. See [DEPLOY.md](DEPLOY.md)
-for the confirmed addresses and source verification. Do not repeat the creation transactions.
+for confirmed addresses, source verification and the successful ten-call wiring receipt.
+Do not repeat the creation or wiring transactions. Fee-rights transfer, review and activation remain pending.
 The remaining CLI workflow prepares unsigned Safe configuration batches.
 
 
@@ -87,6 +88,9 @@ calldata and getter checks authenticate their values. This is not explorer sourc
 an audit of the original contracts, token proxies, router or hook.
 
 ## 4. Generate and execute the paused wiring batch
+
+Completed on Base on September 29, 2026; see [DEPLOY.md](DEPLOY.md). The commands below
+document the workflow. Do not rerun or resubmit the completed wiring batch.
 
 ```sh
 npm run prepare:deployment -- batch wire deployment-plan.json deployment-hashes.json safe-wire.json

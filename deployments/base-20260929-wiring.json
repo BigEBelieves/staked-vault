@@ -1,0 +1,108 @@
+{
+  "verifiedAt": "2026-09-29T10:38:22.537Z",
+  "chainId": 8453,
+  "block": "51944466",
+  "blockHash": "0xd2fdb419029a90665ae95972e6a3a3fc9005d7c1faef42dcb7d0ab40ed5314db",
+  "safe": "0xb9066550918fa778a4039120eac878230cf8f6fc",
+  "preparedBatchHash": "0x47d8b210fa5c1461c633cdf175a05a51d845370049b2f101e98ef83ab50309be",
+  "state": {
+    "StakedVault.distributor": "0x0489c70E4C51F1518f3514728CDfB77F6a4A2C88",
+    "StakedVault.buybackExecutor": "0xEfDdAECA280FdAD3ce8aF2A42177E1fF5925a8B5",
+    "StakedVault.keeper": "0x2962643Fe17228D05bB51f71378e6d258b96848e",
+    "StakedDistributor.owner": "0xb9066550918fa778a4039120eac878230cf8f6FC",
+    "StakedAutomationGuard.paused": true,
+    "StakedVault.owner": "0xb9066550918fa778a4039120eac878230cf8f6FC",
+    "StakedDistributor.liquidityWallet": "0xb9066550918fa778a4039120eac878230cf8f6FC",
+    "StakedDistributor.vault": "0x0489c70E4C51F1518f3514728CDfB77F6a4A2C88",
+    "StakedAutomationGuard.executor": "0xEfDdAECA280FdAD3ce8aF2A42177E1fF5925a8B5",
+    "StakedDistributor.keeper": "0x2962643Fe17228D05bB51f71378e6d258b96848e",
+    "StakedAutomationGuard.safe": "0xb9066550918fa778a4039120eac878230cf8f6FC",
+    "StakedDistributor.bnkrStakingWallet": "0xb9066550918fa778a4039120eac878230cf8f6FC",
+    "StakedDistributor.pendingOwner": "0x0000000000000000000000000000000000000000",
+    "StakedVault.pendingOwner": "0x0000000000000000000000000000000000000000",
+    "StakedAutomationGuard.remainingUsdc": "0",
+    "StakedAutomationGuard.remainingBnkr": "0",
+    "StakedAutomationGuard.operator": "0x0000000000000000000000000000000000000000",
+    "Guard.nonce": "1",
+    "Safe.getOwners": [
+      "0xa741dAd09fFF5de643283142eD339b9F0b52b146",
+      "0x7690f887a6aFe5fc27BD9B4D67C76a83ab44E1a4",
+      "0x52d53D2bb353d63f85655C26163f535EAEaBDb09"
+    ],
+    "Safe.getThreshold": "2",
+    "Safe.nonce": "5",
+    "feeShare.safe": "950000000000000000",
+    "feeShare.collector": "0",
+    "feeShare.bankr": "0",
+    "feeShare.other": "50000000000000000",
+    "allowance.STAKED.distributor": "0",
+    "allowance.BNKR.distributor": "0",
+    "allowance.BNKR.vault": "0"
+  },
+  "runtimes": [
+    {
+      "name": "StakedRewardRelay",
+      "address": "0x0489c70E4C51F1518f3514728CDfB77F6a4A2C88",
+      "hash": "0x2fe2a67ffd3aa4880e01eabd612550624c03f22afc1a1321c8908aaee1679713",
+      "match": true
+    },
+    {
+      "name": "StakedAutomationGuard",
+      "address": "0x2962643Fe17228D05bB51f71378e6d258b96848e",
+      "hash": "0xb32bf1895087e1ca68a998761f7ff53ad57ef9c3ea955c8f05104126155dfbbf",
+      "match": true
+    },
+    {
+      "name": "StakedBoundedBuybackExecutor",
+      "address": "0xEfDdAECA280FdAD3ce8aF2A42177E1fF5925a8B5",
+      "hash": "0x041c5b70ed5bf53626df21a7350bc4f3ab75e3d96a81f81befe435c567165e3a",
+      "match": true
+    },
+    {
+      "name": "StakedFeeCollector",
+      "address": "0xb6F61e30420bad8F5C636E8DDFFba61a90167393",
+      "hash": "0xa118a3a632e41acab87178f594c84e8ab0c624a198943c4b4835e9d0b111bf82",
+      "match": true
+    }
+  ],
+  "executions": [
+    {
+      "transactionHash": "0xcb4976cbaec92290de5ff14564d75fa43b91a92773a6113babad70dbda534e71",
+      "from": "0xaf2bfb6b69dfe6efd257fe8cd694175156a23812",
+      "to": "0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789",
+      "status": "success",
+      "block": "51944324",
+      "blockHash": "0x383b6b26766713514e55bf7177e6623606a17e3948f6d7eaf13aa36361a116ea",
+      "timestamp": "1790677995",
+      "canonical": true,
+      "safeTxHash": "0x53a6733345ac9b4ef7aa848da30e95eb5c72a369bc36837a9861f43b0bc91588",
+      "safeFeeFields": {
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000"
+      },
+      "matchesPreparedSafeNonce": true,
+      "safeNonce": "4",
+      "thresholdAtExecution": "2",
+      "safeCaller": "0x52d53D2bb353d63f85655C26163f535EAEaBDb09",
+      "exactPreparedInnerCalls": true,
+      "innerCallCount": 10,
+      "safeTransactionHashVerified": true,
+      "multiSend": {
+        "address": "0xA83c336B20401Af773B6219BA5027174338D1836",
+        "version": "1.5.0",
+        "codeHash": "0xcdbdcec38d2f1c7d961b0029ff8416b7e86e9974d6f0e9c9580c7d17fcfb6663",
+        "officialRegistryCodeMatches": true,
+        "registrySource": "https://github.com/safe-global/safe-deployments/blob/main/src/assets/v1.5.0/multi_send_call_only.json"
+      },
+      "submissionNote": "Wallet submitted through an ERC-4337 EntryPoint. Safe UI selected official MultiSendCallOnly v1.5.0 rather than the v1.4.1 library used in the local rehearsal. All ten inner calls match exactly; the outer Safe transaction hash consequently differs from the rehearsal."
+    }
+  ],
+  "mismatches": [],
+  "wiringStateMatches": true,
+  "exactSuccessfulExecution": true,
+  "note": "Read-only verification. Off-chain automation schedules and the existing Bankr BNKR staking position were not queried.",
+  "verificationMethod": "Safe-emitted SafeMultiSigTransaction and ExecutionSuccess events, exact inner calldata comparison, canonical receipt, Safe transaction-hash recomputation and official MultiSend runtime hash"
+}

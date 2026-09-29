@@ -20,12 +20,23 @@ The recorded integration run passed 67 checks against Base block 51,929,714, inc
 Safe execution, fee collection, v3/v4 swaps and rollback. See [FORK-TESTING.md](FORK-TESTING.md).
 The helpers are now deployed. Fresh-state Safe batch simulation and independent review remain required before activation.
 
-## Helpers deployed — wiring and activation pending
+## Helpers connected — trading paused
 
-Configuration verified at Base block **51932777**. All helpers are Safe-controlled.
-The guard is paused; operator, executor and budgets are zero. Both legacy keeper fields remain
-zero, existing reward/executor links remain unchanged, the Safe retains its 95% fee share, and
-the three Bankr token allowances remain zero. No wiring or activation transaction was sent.
+The ten-call wiring batch executed successfully at Base block **51944324**:
+[0xcb4976cbaec92290de5ff14564d75fa43b91a92773a6113babad70dbda534e71](https://basescan.org/tx/0xcb4976cbaec92290de5ff14564d75fa43b91a92773a6113babad70dbda534e71). Safe nonce 4 was consumed; the nonce is now 5.
+
+Configuration verified at Base block **51944466**. The vault and distributor both use
+the guard as keeper and the relay for rewards. The vault and guard point to the bounded executor.
+The guard remains paused with no operator or spending budget. Ownership and payouts remain with
+the 2-of-3 Safe; all four helper runtimes match the deployed build. The Safe still owns the 95%
+fee share, the collector owns 0%, and all three Bankr allowances remain zero. Fee-rights transfer
+and trading activation are separate pending stages.
+
+The wallet submitted through an ERC-4337 EntryPoint. Safe selected official MultiSendCallOnly
+v1.5.0 at `0xA83c336B20401Af773B6219BA5027174338D1836`, rather than the v1.4.1
+library used in the local rehearsal. All ten inner calls matched exactly. The emitted Safe
+transaction hash was recomputed at nonce 4, and the v1.5.0 runtime matched the official Safe
+deployment registry. See [the live wiring record](deployments/base-20260929-wiring.json).
 
 Deployment source: `94e771c9e528028792b2100968778fdcaa870b33`. Rabby EOA: `0xa741dad09fff5de643283142ed339b9f0b52b146`, nonces 199–202.
 All four direct creations succeeded with zero ETH constructor value.
@@ -41,7 +52,7 @@ Sourcify reports exact creation and runtime source matches for all four contract
 submissions to Etherscan/BaseScan and Blockscout hit provider limits, so this does not claim
 verification on those explorers. Source matching is not an independent security audit.
 
-See [live configuration verification](deployments/base-20260929-verification.json) and
+See [initial deployment verification](deployments/base-20260929-verification.json) and
 [source-verification responses](deployments/base-20260929-sources.json).
 
 Use [DEPLOYMENT-PACKAGE.md](DEPLOYMENT-PACKAGE.md) for the unsigned deployment planner,
@@ -53,8 +64,8 @@ Follow [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md), including fork tests, con
 Safe batch simulation, guarded trial, receipt checks and rollback. Keep the existing vault and
 its user positions; the reward relay and guarded executor connect through existing setters.
 
-Editing Solidity does not update an already deployed contract. Connecting these helpers to
-the live vault requires explicit Safe transactions; trading activation remains a separate step.
+Editing Solidity does not update an already deployed contract. Wiring is complete; do not repeat
+the deployment or wiring transactions. Trading activation remains a separate Safe decision.
 
 ## Build and test
 
