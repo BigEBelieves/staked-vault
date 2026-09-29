@@ -5,7 +5,7 @@ export function publicFailure(stderr){
   ['rate limit',/rate.limit|too many requests|\b429\b/i],
   ['read upstream failed',/Read-only upstream failed/],
   ['archive state unavailable',/missing trie node|historical state|state is not available/i],
-  ['log range rejected',/block range|query returned more than|too many blocks/i],
+  ['log range rejected',/blocks? range|range.{0,20}(?:limit|block)|query returned more than|too many blocks|eth_getLogs.{0,40}limited/i],
   ['execution reverted',/execution reverted|Local transaction reverted/i],
   ['assertion failed',/AssertionError/],
   ['connection timeout',/connect.*timed out|connection timeout|TimeoutError|request took too long/i],

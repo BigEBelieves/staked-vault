@@ -56,8 +56,10 @@ export async function snapshotMigration(client,C,A,blockNumber) {
  const logs=[];const event=parseAbi(['event Staked(address indexed user,uint256 amount,uint256 newLockEnd)'])[0];
  // Scan all historical depositors, not just the wallet currently holding supply.
  const ranges=[];
- for(let from=BigInt(C.vaultDeploymentBlock);from<=block.number;from+=2000n)
-  ranges.push({fromBlock:from,toBlock:from+1999n<block.number?from+1999n:block.number});
+ // Small pages accommodate public-provider log query limits. Every block is
+ // still scanned, including the final partial page; no depositor is skipped.
+ for(let from=BigInt(C.vaultDeploymentBlock);from<=block.number;from+=100n)
+  ranges.push({fromBlock:from,toBlock:from+99n<block.number?from+99n:block.number});
  for(let i=0;i<ranges.length;i+=4)
   for(const result of await Promise.all(ranges.slice(i,i+4).map(range=>client.getLogs({address:C.vault,event,...range}))))logs.push(...result);
  const addresses=[...new Set([...logs.map(l=>l.args.user?.toLowerCase()).filter(Boolean),C.bankr.toLowerCase()])];
