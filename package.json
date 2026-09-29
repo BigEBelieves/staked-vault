@@ -6,11 +6,12 @@
   "description": "$STAKED dual-reward staking vault + fee distributor on Base",
   "scripts": {
     "compile": "node scripts/compile.mjs",
-    "test": "node scripts/compile.mjs && node test/vault.test.mjs && node test/automation.test.mjs && node --test test/keeper.test.mjs test/trial-policy.test.mjs test/deployment.test.mjs",
+    "test": "node scripts/compile.mjs && node test/vault.test.mjs && node test/automation.test.mjs && node test/twap-keeper.test.mjs && node --test test/keeper.test.mjs test/trial-policy.test.mjs test/deployment.test.mjs test/twap-plan.test.mjs",
     "prepare:trial": "node scripts/compile.mjs && node scripts/prepare-trial-policy.mjs",
     "prepare:deployment": "node scripts/compile.mjs && node scripts/prepare-deployment.mjs",
-    "test:deployment-page": "node --test test/deployment-page.test.mjs",
-    "test:fork": "node scripts/compile.mjs && node scripts/fork/run.mjs"
+    "test:deployment-page": "node --test test/deployment-page.test.mjs test/twap-page.test.mjs",
+    "test:fork": "node scripts/compile.mjs && node scripts/fork/run.mjs",
+    "test:twap-fork": "node scripts/compile.mjs && node scripts/fork/run.mjs --twap"
   },
   "devDependencies": {
     "@ethereumjs/block": "5.3.0",

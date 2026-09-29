@@ -1,5 +1,11 @@
 # Keeper runbook — helpers connected, trading paused
 
+The new distribution-only [TWAP automation path](TWAP-AUTOMATION.md) removes
+hourly Safe policy renewals and does not require a private RPC. Its replacement
+keeper must be deployed and installed by the Safe before that runbook applies.
+The remainder of this file describes the earlier expiring-policy guard,
+including its separately disabled buyback path. Do not mix the two planners.
+
 **Keep the old jobs disabled.** The previous daily/hourly Bankr commands are retired. They relied
 on Bankr owning contracts, holding fee rights and using 3–5% quote tolerances. The Safe now owns
 those administrative rights. Read the guard's operator, pause state and budgets before every preparation.

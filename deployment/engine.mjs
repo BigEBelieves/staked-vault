@@ -16,14 +16,16 @@ export function checkRuntime(code,artifact) {
 export class DeploymentSession {
   constructor(provider,payload,storage,key) {
     this.provider=provider;this.payload=payload;this.storage=storage;this.key=key;this.inFlight=false;
+    this.count=payload.plan.deployments.length;
+    requireThat(this.count>0&&this.count<=4&&payload.verification.length===this.count,'Invalid deployment count.');
     this.load();
   }
   rpc(method,params=[]) {return this.provider.request({method,params});}
   load() {
     const raw=this.storage.getItem(this.key);
-    this.saved=raw?JSON.parse(raw):{hashes:[null,null,null,null],uncertain:[false,false,false,false]};
-    requireThat(Array.isArray(this.saved.hashes)&&this.saved.hashes.length===4&&this.saved.hashes.every(h=>h===null||isHash(h)), 'Saved receipt data is invalid. Stop and inspect it.');
-    requireThat(Array.isArray(this.saved.uncertain)&&this.saved.uncertain.length===4&&this.saved.uncertain.every(v=>typeof v==='boolean'),'Saved transaction status is invalid.');
+    this.saved=raw?JSON.parse(raw):{hashes:Array(this.count).fill(null),uncertain:Array(this.count).fill(false)};
+    requireThat(Array.isArray(this.saved.hashes)&&this.saved.hashes.length===this.count&&this.saved.hashes.every(h=>h===null||isHash(h)), 'Saved receipt data is invalid. Stop and inspect it.');
+    requireThat(Array.isArray(this.saved.uncertain)&&this.saved.uncertain.length===this.count&&this.saved.uncertain.every(v=>typeof v==='boolean'),'Saved transaction status is invalid.');
   }
   save() {this.storage.setItem(this.key,JSON.stringify(this.saved));}
   async identity() {
@@ -56,7 +58,7 @@ export class DeploymentSession {
     this.load();await this.identity();
     const head=await this.rpc('eth_getBlockByNumber',['latest',false]);
     const rows=[];
-    for(let i=0;i<4;i++) {
+    for(let i=0;i<this.count;i++) {
       const hash=this.saved.hashes[i];
       if(hash) {
         const row=await this.verifyOne(i,hash,head);rows.push(row);
@@ -72,7 +74,7 @@ export class DeploymentSession {
         return {status:'ready',index:i,rows,head};
       }
     }
-    return {status:'complete',index:4,rows,head};
+    return {status:'complete',index:this.count,rows,head};
   }
   async prepare() {
     const status=await this.inspect();requireThat(status.status==='ready','Complete or recover the current step before requesting another transaction.');
@@ -116,7 +118,7 @@ export class DeploymentSession {
     } finally {this.inFlight=false;}
   }
   async recover(index,hash) {
-    requireThat(Number.isInteger(index)&&index>=0&&index<4&&isHash(hash),'Enter the complete Base transaction hash.');
+    requireThat(Number.isInteger(index)&&index>=0&&index<this.count&&isHash(hash),'Enter the complete Base transaction hash.');
     this.load();await this.identity();
     const head=await this.rpc('eth_getBlockByNumber',['latest',false]);
     const verified=await this.verifyOne(index,hash,head);

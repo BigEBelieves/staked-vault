@@ -4,7 +4,8 @@ import { setTimeout } from 'node:timers/promises';
 
 const executable = process.env.ANVIL_BIN ?? 'anvil';
 const upstream = process.env.BASE_READ_RPC_URL ?? 'https://mainnet.base.org';
-const block = process.env.BASE_FORK_BLOCK ?? '51929714';
+const twap = process.argv.includes('--twap');
+const block = process.env.BASE_FORK_BLOCK ?? (twap ? '51948371' : '51929714');
 const upstreamPort = 18554, forkPort = 18545;
 const processes = [];
 function start(cmd, args, log, localOnly = false) {
@@ -14,7 +15,7 @@ function start(cmd, args, log, localOnly = false) {
   processes.push(child);
   return child;
 }
-async function ready(url, method, attempts = 120) {
+async function ready(url, method, attempts = 240) {
   for (let i = 0; i < attempts; i++) {
     try {
       const r = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -31,12 +32,12 @@ try {
   start('python', ['scripts/fork/read-only-rpc.py', '--url', upstream, '--port', String(upstreamPort)], '/tmp/staked-fork-upstream.log');
   await ready(`http://127.0.0.1:${upstreamPort}`, 'eth_chainId');
   start(executable, ['--fork-url', `http://127.0.0.1:${upstreamPort}`, '--fork-block-number', block,
-    '--chain-id', '8453', '--network', 'optimism', '--host', '127.0.0.1', '--port', String(forkPort), '--silent'], '/tmp/staked-anvil.log', true);
+    '--chain-id', '8453', '--network', 'optimism', '--accounts', '2', '--host', '127.0.0.1', '--port', String(forkPort), '--silent'], '/tmp/staked-anvil.log', true);
   const url = `http://127.0.0.1:${forkPort}`;
   console.log('Local client:', await ready(url, 'web3_clientVersion'));
   console.log('Node info:', JSON.stringify(await ready(url, 'anvil_nodeInfo')));
   if (!process.argv.includes('--smoke')) {
-    const child = spawn(process.execPath, ['test/base-fork.test.mjs'], {stdio: 'inherit', env: {...process.env, LOCAL_FORK_RPC_URL: url, BASE_FORK_BLOCK: block}});
+    const child = spawn(process.execPath, [twap ? 'test/twap-fork.test.mjs' : 'test/base-fork.test.mjs'], {stdio: 'inherit', env: {...process.env, LOCAL_FORK_RPC_URL: url, BASE_FORK_BLOCK: block}});
     processes.push(child);
     const code = await new Promise(resolve => child.on('exit', resolve));
     if (code !== 0) throw new Error(`Fork test exited ${code}`);

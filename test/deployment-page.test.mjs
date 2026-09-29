@@ -6,8 +6,9 @@ import {DeploymentSession,hex} from '../deployment/engine.mjs';
 import {payloadSha256} from '../deployment/payload-digest.mjs';
 const bytes=readFileSync('deployment/payload.json','utf8'),payload=JSON.parse(bytes);
 const blockHash='0x'+'a'.repeat(64),other='0x'+'b'.repeat(40);
-function fixture(){
+function fixture(count=4){
  const p=structuredClone(payload),calls=[],values=new Map();
+ p.plan.deployments=p.plan.deployments.slice(0,count);p.verification=p.verification.slice(0,count);
  const state={chain:'0x2105',account:p.plan.deployer,nonce:BigInt(p.plan.firstNonce),pending:null,balance:10n**18n,
   delegation:'0x',head:102n,txs:new Map(),receipts:new Map(),codes:new Map(),calls,sendError:null,revertSimulation:false,badRuntime:false,badGetter:false};
  const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
@@ -122,5 +123,12 @@ test('storage failure prevents opening a signing request',async()=>{
 });
 test('duplicate calls in one session cannot open concurrent wallet requests',async()=>{
  const{session,state}=fixture();const first=session.sendNext();await assert.rejects(session.sendNext(),/already open/);await first;
+ assert.equal(state.calls.filter(c=>c.method==='eth_sendTransaction').length,1);
+});
+test('single-helper plans complete after one verified creation and cannot repeat',async()=>{
+ const {session,state}=fixture(1);
+ await session.sendNext();assert.equal((await session.inspect()).status,'complete');
+ await assert.rejects(session.sendNext(),/Complete or recover/);
+ await assert.rejects(session.recover(1,'0x'+'1'.repeat(64)),/complete Base/);
  assert.equal(state.calls.filter(c=>c.method==='eth_sendTransaction').length,1);
 });
