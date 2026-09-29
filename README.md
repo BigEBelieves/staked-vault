@@ -11,7 +11,9 @@ Dual-reward staking for **$STAKED** on Base, funded by the STAKED/BNKR Uniswap v
 The Safe `0xb9066550918fa778a4039120eac878230cf8f6FC` is the administrative owner following the ownership migration.
 Legacy automation is disabled. This branch proposes helper contracts for fixed-destination fee collection,
 reward forwarding and Safe-bounded trading. **The new helpers are not deployed.**
-Read [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md) before enabling any keeper.
+The branch passes 139 offline checks and 60 checks against a recorded Base fork.
+See [FORK-TESTING.md](FORK-TESTING.md) for evidence and limits, and
+[SECURITY-MIGRATION.md](SECURITY-MIGRATION.md) before enabling any keeper.
 
 ## Layout
 

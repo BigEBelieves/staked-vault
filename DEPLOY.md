@@ -14,6 +14,12 @@ The Safe ownership and fee-beneficiary migration supersede the original Bankr-ow
 Re-read ownership, keepers, payouts, Safe threshold and beneficiary shares before any transaction.
 Known addresses and pool parameters are in [config/base.json](config/base.json).
 
+## Fork verification
+
+The recorded integration run passed 60 checks against Base block 51,929,714, including actual
+Safe execution, fee collection, v3/v4 swaps and rollback. See [FORK-TESTING.md](FORK-TESTING.md).
+The helpers remain undeployed; fresh-state simulation and independent review are still required.
+
 ## Proposed helpers — not deployed
 
 Follow [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md), including fork tests, constructor verification,

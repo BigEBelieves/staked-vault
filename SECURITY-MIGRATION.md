@@ -70,7 +70,7 @@ share following the beneficiary transfer. New helpers have **not** been deployed
 - Run `npm ci` and `npm test`. Review the diff and verified legacy source.
 - Fork Base at a recorded block. Exercise the real SwapRouter02, PoolManager, Doppler hook,
   fee collection and Safe batch. Mocks do not validate hook behavior, liquidity or private RPCs.
-- On that fork, verify `owner()` for the vault/distributor/legacy executor is the Safe, both
+- On that fork, verify `owner()` for the vault/distributor/legacy executor is the Safe, all
   `pendingOwner()` values are zero, and both old keeper fields are zero.
 - Verify the Safe's owners/threshold, `getShares(poolId, Safe) == 950000000000000000`,
   Bankr's share is zero, and both distributor payout wallets are the Safe.
@@ -171,7 +171,11 @@ The local suite uses the real legacy vault/distributor bytecode and new helper b
 mock ERC20s, router, Doppler fee manager and PoolManager. It checks role separation, payout routing,
 zero residual allowances, floors, replay, budgets, expiry, callback authorization, partial-fill
 rollback and original reward accounting. The planner tests pinned reads and failure to prepare
-unsafe/stale calls. This is not an independent audit or an executed Base fork test.
+unsafe/stale calls. In addition, **60 checks passed on a Base fork at block 51,929,714**,
+including the actual Safe batch, Doppler fees, v3/v4 swaps, a rejected v4 fill and rollback.
+See [FORK-TESTING.md](FORK-TESTING.md) for reproduction commands and the exact fixture changes.
+No production contract code change was needed after the fork run. This is not an independent audit.
+Retest against fresh state and review actual deployment transactions before activation.
 
 Primary references:
 - [Uniswap v4 whitepaper, oracle architecture](https://app.uniswap.org/whitepaper-v4.pdf)

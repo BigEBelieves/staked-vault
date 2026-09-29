@@ -21,5 +21,9 @@
     "hooks": "0xbdf938149ac6a781f94faa0ed45e6a0e984c6544"
   },
   "feeUsdcWeth": 500,
-  "feeWethBnkr": 10000
+  "feeWethBnkr": 10000,
+  "v3Quoter": "0x3d4e44eb1374240ce5f1b871ab261cd16335b76a",
+  "v4Quoter": "0x0d5e0f971ed27fbff6c2837bf31316121532048d",
+  "stateView": "0xa3c0c9b65bad0b08107aa264b0f3db444b867a71",
+  "multiSendCallOnly": "0x9641d764fc13c8b624c04430c7356c1c7c8102e2"
 }

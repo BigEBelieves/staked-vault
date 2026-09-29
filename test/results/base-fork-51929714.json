@@ -1,0 +1,38 @@
+{
+  "block": 51929714,
+  "blockHash": "0x49e5675c2b3d823d6c125762ce8557f14669d76a0f08d85bc118bcad04827ad7",
+  "timestamp": "1790648775",
+  "anvil": "anvil/v1.7.1",
+  "hardfork": "Jovian",
+  "network": "optimism",
+  "mode": "local fork only",
+  "limitations": [
+    "Signer approval hashes are impersonated on the local fork; no real wallet signatures.",
+    "Initial ETH balances are increased locally for gas.",
+    "Trial policy references use local spot quotes for integration testing only, not approved production prices.",
+    "Local blocks advance by two seconds per transaction; fork RPC latency is not production quote latency.",
+    "Private RPC submission and future liquidity conditions are not tested.",
+    "Distributor minBnkrBatch is lowered to one on the fork only, to exercise a small-value batch."
+  ],
+  "observations": {
+    "initialQueue": "4982213374944607",
+    "initialReserve": "0",
+    "bankrUsdc": "20089590",
+    "fixtureReserve": "103680",
+    "distribution": {
+      "bnkrIn": "1105920633091813692258",
+      "usdcOut": "440606"
+    },
+    "buyback": {
+      "usdcIn": "51840",
+      "stakedBurned": "275722369955309738233584",
+      "quotedStaked": "275722369955309738233584",
+      "sqrtPriceLimitX96": "3699729911416888010845083496604"
+    },
+    "fees": {
+      "staked": "15823802943856216071",
+      "bnkr": "845680207030006412"
+    }
+  },
+  "checks": 60
+}
