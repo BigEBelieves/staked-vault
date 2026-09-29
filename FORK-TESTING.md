@@ -26,11 +26,11 @@ network access and historical Base state. It writes its observations to
 
 ## Recorded result
 
-**60 fork checks passed** at Base block **51,929,714** (2026-09-29 02:26:15 UTC), using
+**67 fork checks passed** at Base block **51,929,714** (2026-09-29 02:26:15 UTC), using
 Anvil 1.7.1 with the Optimism/Jovian engine. Block hash:
 `0x49e5675c2b3d823d6c125762ce8557f14669d76a0f08d85bc118bcad04827ad7`.
 
-The same branch passes all **139 offline checks**. No production contract changes were needed
+The same branch passes all **146 offline checks**. No production contract changes were needed
 as a result of this integration run. New helpers are still undeployed on Base.
 
 | Local fork scenario | Observed result |
@@ -50,6 +50,10 @@ All activity above occurred only in the local fork; no live funds were moved.
 - Actual Safe owners, threshold, approvals, `execTransaction` and deployed MultiSendCallOnly.
 - Current contract owners, disabled legacy keepers, payout addresses, allowances and fee shares.
 - Local deployment of proposed helpers, atomic Safe wiring and preservation of queued BNKR.
+- Deployment from generated constructor calldata with receipt, runtime and immutable verification;
+  generated Safe wiring, fee-rights and rollback batches; rejection of substituted receipts,
+  premature fee-rights transfer and repeated wiring. Offline checks cover corrupted manifests,
+  altered runtime code, and compatibility with the previously imported Safe checksum.
 - Actual Doppler fee collection, beneficiary transfer, payout splits and beneficiary rollback.
 - Actual USDC/STAKED/BNKR contracts, staking, a funded reward stream and early withdrawal.
 - Uniswap v3 quotes and swaps through both route directions.

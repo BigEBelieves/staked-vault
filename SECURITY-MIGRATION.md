@@ -4,6 +4,11 @@ This change adds four helpers around the existing non-upgradeable vault and dist
 No user stakes, queued BNKR, reward accounting, or buyback reserves need to move to a new vault.
 The legacy contract implementations are retained verbatim for compatibility and verification.
 
+The [deployment package](DEPLOYMENT-PACKAGE.md) generates constructor calldata and verifies
+actual deployments before producing paused wiring, fee-rights, or rollback Safe batches.
+See [REVIEW-HANDOFF.md](REVIEW-HANDOFF.md) for independent review scope and
+[PRIVATE-SUBMISSION.md](PRIVATE-SUBMISSION.md) for the Base provider findings and remaining checks.
+
 ## What this version does
 
 | Component | Authority and behavior |
@@ -171,7 +176,7 @@ The local suite uses the real legacy vault/distributor bytecode and new helper b
 mock ERC20s, router, Doppler fee manager and PoolManager. It checks role separation, payout routing,
 zero residual allowances, floors, replay, budgets, expiry, callback authorization, partial-fill
 rollback and original reward accounting. The planner tests pinned reads and failure to prepare
-unsafe/stale calls. In addition, **60 checks passed on a Base fork at block 51,929,714**,
+unsafe/stale calls. In addition, **67 checks passed on a Base fork at block 51,929,714**,
 including the actual Safe batch, Doppler fees, v3/v4 swaps, a rejected v4 fill and rollback.
 See [FORK-TESTING.md](FORK-TESTING.md) for reproduction commands and the exact fixture changes.
 No production contract code change was needed after the fork run. This is not an independent audit.

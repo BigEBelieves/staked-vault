@@ -5,6 +5,7 @@ import { createPublicClient, createWalletClient, http, parseAbi, encodeFunctionD
   encodePacked, concatHex, padHex, toHex, parseEventLogs, keccak256 } from 'viem';
 import { base } from 'viem/chains';
 import { prepareKeeper } from '../scripts/keeper-plan.mjs';
+import { createDeploymentPlan, prepareSafeBatch, verifyDeployments } from '../scripts/deployment-plan.mjs';
 
 const url = new URL(process.env.LOCAL_FORK_RPC_URL ?? 'http://127.0.0.1:18545');
 assert(['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname), 'Fork test refuses non-loopback RPC');
@@ -68,12 +69,13 @@ async function impersonate(address) {
   await pc.request({method: 'anvil_impersonateAccount', params: [address]});
   await pc.request({method: 'anvil_setBalance', params: [address, toHex(100n * E18)]});
 }
-async function deploy(name, args) {
-  const hash = await wc.deployContract({abi: abi(name), bytecode: A[name].bytecode, args, account: actor, gas: 12000000n});
+async function deploy(d) {
+  const hash = await wc.sendTransaction({data:d.data,nonce:d.nonce,value:0n,account:actor,gas:12000000n});
   const receipt = await pc.waitForTransactionReceipt({hash});
-  assert.equal(receipt.status, 'success', `${name} deploy`);
-  console.log(`  local helper deployed: ${name}`);
-  return receipt.contractAddress;
+  assert.equal(receipt.status, 'success', `${d.name} deploy`);
+  assert.equal(receipt.contractAddress.toLowerCase(),d.address.toLowerCase());
+  console.log(`  local helper deployed: ${d.name}`);
+  return hash;
 }
 const owners = (await read(C.safe, safeAbi, 'getOwners')).sort((a,b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 check(owners.length === 3 && await read(C.safe, safeAbi, 'getThreshold') === 2n, 'real Safe has three owners and threshold two');
@@ -113,22 +115,27 @@ observations.bankrUsdc = (await balance(C.usdc,C.bankr)).toString();
 console.log('Initial amounts', observations);
 
 console.log('[fork] helper deployment and real Safe wiring');
-const relay = await deploy('StakedRewardRelay',[C.safe,C.vault,C.distributor,C.usdc,C.bnkr]);
-const guard = await deploy('StakedAutomationGuard',[C.safe,C.vault,C.distributor]);
-const executor = await deploy('StakedBoundedBuybackExecutor',[C.safe,{
-  vault:C.vault,guard,usdc:C.usdc,weth:C.weth,bnkr:C.bnkr,staked:C.staked,router:C.v3Router,poolManager:C.poolManager,
-  feeUsdcWeth:C.feeUsdcWeth,feeWethBnkr:C.feeWethBnkr,v4Fee:C.poolKey.fee,tickSpacing:C.poolKey.tickSpacing,hooks:C.initializer}]);
-const collector = await deploy('StakedFeeCollector',[C.safe,C.initializer,C.poolId,C.staked,C.bnkr,C.distributor]);
-await safeBatch([
-  tx(C.vault,abi('StakedVault'),'setKeeper',[ZERO]), tx(C.distributor,abi('StakedDistributor'),'setKeeper',[ZERO]),
-  tx(guard,abi('StakedAutomationGuard'),'setExecutor',[executor]), tx(C.distributor,abi('StakedDistributor'),'setVault',[relay]),
-  tx(C.vault,abi('StakedVault'),'setDistributor',[relay]), tx(C.vault,abi('StakedVault'),'setBuybackExecutor',[executor]),
-  tx(C.vault,abi('StakedVault'),'setKeeper',[guard]), tx(C.distributor,abi('StakedDistributor'),'setKeeper',[guard])
-], 'two approvals execute atomic migration through real Safe and MultiSend');
+const deploymentPlan = createDeploymentPlan(C,A,actor,await pc.getTransactionCount({address:actor}));
+const deploymentHashes = [];
+for (const d of deploymentPlan.deployments) deploymentHashes.push(await deploy(d));
+const {relay,guard,executor,collector} = deploymentPlan.addresses;
+const verified = await verifyDeployments(pc,C,A,deploymentPlan,deploymentHashes);
+check(verified.receipts.length===4,'generated deployment calldata, runtime and constructor getters verified');
+await assert.rejects(verifyDeployments(pc,C,A,deploymentPlan,[...deploymentHashes].reverse()),/Wrong deployment nonce/);
+check(true,'verification rejects substituted deployment receipts');
+await assert.rejects(prepareSafeBatch(pc,C,A,deploymentPlan,deploymentHashes,'fees'),/Guard executor mismatch/);
+check(true,'fee-rights batch refused before helper wiring');
+const wirePackage = await prepareSafeBatch(pc,C,A,deploymentPlan,deploymentHashes,'wire');
+await safeBatch(wirePackage.batch.transactions,'generated wiring batch executes through real Safe and MultiSend');
+check(await call('StakedAutomationGuard',guard,'paused') && await call('StakedAutomationGuard',guard,'operator')===ZERO,
+  'generated wiring keeps guard paused with operator disabled');
+await assert.rejects(prepareSafeBatch(pc,C,A,deploymentPlan,deploymentHashes,'wire'),/Guard was already configured/);
+check(true,'migration batch refuses already configured helpers');
 check((await call('StakedVault',C.vault,'distributor')).toLowerCase() === relay.toLowerCase(), 'vault points to reward relay');
 check((await call('StakedDistributor',C.distributor,'vault')).toLowerCase() === relay.toLowerCase(), 'distributor points to reward relay');
 check((await call('StakedDistributor',C.distributor,'pendingSwapBnkr')).toString() === observations.initialQueue, 'wiring preserves queued BNKR');
-await safeBatch([tx(C.initializer,feeAbi,'collectFees',[C.poolId]), tx(C.initializer,feeAbi,'updateBeneficiary',[C.poolId,collector])], 'Safe settles fees and moves beneficiary to collector');
+const feePackage = await prepareSafeBatch(pc,C,A,deploymentPlan,deploymentHashes,'fees');
+await safeBatch(feePackage.batch.transactions,'generated fee batch settles Safe fees and moves beneficiary to collector');
 check(await read(C.initializer,feeAbi,'getShares',[C.poolId,collector]) === 950000000000000000n, 'collector receives 95% rights');
 check(await read(C.initializer,feeAbi,'getShares',[C.poolId,C.safe]) === 0n, 'Safe previous share removed');
 await write(collector,abi('StakedFeeCollector'),'collectAndDistribute',[],outsider);
@@ -268,17 +275,14 @@ check(await balance(C.staked,C.safe)-safeStakedBefore === feeAmounts.stakedAmoun
 check(await balance(C.bnkr,C.safe)-safeBnkrBefore === feeAmounts.bnkrAmount/2n,'collector BNKR split reaches Safe');
 check(await allow(C.staked,collector,C.distributor) === 0n && await allow(C.bnkr,collector,C.distributor) === 0n,'collector clears both actual token allowances');
 observations.fees = {staked:feeAmounts.stakedAmount.toString(),bnkr:feeAmounts.bnkrAmount.toString()};
-await safeBatch([
-  tx(guard,abi('StakedAutomationGuard'),'setPaused',[true]),
-  tx(C.vault,abi('StakedVault'),'setKeeper',[ZERO]),
-  tx(C.distributor,abi('StakedDistributor'),'setKeeper',[ZERO]),
-  tx(collector,abi('StakedFeeCollector'),'returnBeneficiaryToSafe',[]),
-  tx(C.distributor,abi('StakedDistributor'),'setVault',[C.vault]),
-  tx(C.vault,abi('StakedVault'),'setDistributor',[C.distributor])
-], 'real Safe executes emergency pause and beneficiary/relay rollback');
+const rollbackPackage = await prepareSafeBatch(pc,C,A,deploymentPlan,deploymentHashes,'rollback');
+await safeBatch(rollbackPackage.batch.transactions,'generated rollback executes emergency pause and beneficiary/relay recovery');
+check(await call('StakedAutomationGuard',guard,'operator')===ZERO,'generated rollback disables Bankr operator');
 check(await read(C.initializer,feeAbi,'getShares',[C.poolId,C.safe]) === 950000000000000000n,'rollback restores Safe 95% fee rights');
 check(await read(C.initializer,feeAbi,'getShares',[C.poolId,collector]) === 0n,'rollback removes collector fee rights');
 check(await call('StakedVault',C.vault,'keeper') === ZERO && await call('StakedDistributor',C.distributor,'keeper') === ZERO,'rollback disables both legacy keeper paths');
+check((await call('StakedDistributor',C.distributor,'vault')).toLowerCase()===C.vault &&
+  (await call('StakedVault',C.vault,'distributor')).toLowerCase()===C.distributor,'rollback restores original reward wiring');
 console.log(`\n${checks} Base fork checks passed; no live transactions sent.`);
 report.checks = checks;
 mkdirSync('test/results',{recursive:true});

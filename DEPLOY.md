@@ -16,11 +16,16 @@ Known addresses and pool parameters are in [config/base.json](config/base.json).
 
 ## Fork verification
 
-The recorded integration run passed 60 checks against Base block 51,929,714, including actual
+The recorded integration run passed 67 checks against Base block 51,929,714, including actual
 Safe execution, fee collection, v3/v4 swaps and rollback. See [FORK-TESTING.md](FORK-TESTING.md).
 The helpers remain undeployed; fresh-state simulation and independent review are still required.
 
 ## Proposed helpers — not deployed
+
+Use [DEPLOYMENT-PACKAGE.md](DEPLOYMENT-PACKAGE.md) for the unsigned deployment planner,
+receipt/runtime verification, and staged Safe batch generator. The independent review scope is in
+[REVIEW-HANDOFF.md](REVIEW-HANDOFF.md); Base provider findings are in
+[PRIVATE-SUBMISSION.md](PRIVATE-SUBMISSION.md).
 
 Follow [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md), including fork tests, constructor verification,
 Safe batch simulation, guarded trial, receipt checks and rollback. Keep the existing vault and

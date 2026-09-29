@@ -4,6 +4,8 @@
 on Bankr owning contracts, holding fee rights and using 3–5% quote tolerances. The Safe now owns
 those administrative rights; new helper contracts in this branch still require deployment and review.
 See [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md) for the complete wiring and test gates.
+See [PRIVATE-SUBMISSION.md](PRIVATE-SUBMISSION.md) for documented Base submission options and
+the still-unverified provider/Bankr signing requirements. No sender is implemented in this branch.
 
 ## Authority
 
