@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "94e771c9e528028792b2100968778fdcaa870b33",
+  "chainId": 8453,
+  "deployer": "0xa741dad09fff5de643283142ed339b9f0b52b146",
+  "status": "deployed; inactive; independent review outstanding",
+  "verifiedAt": "2026-09-29T04:13:29.429Z",
+  "stage": "wire",
+  "block": "51932777",
+  "blockHash": "0x1f248625a8d39a8ab854d3b23e66c9dd39d54c8d267d0af4b7ab5cb9ed3ac1e7",
+  "timestamp": "1790654901",
+  "safe": "0xb9066550918fa778a4039120eac878230cf8f6fc",
+  "safeNonce": "4",
+  "owners": [
+    "0xa741dAd09fFF5de643283142eD339b9F0b52b146",
+    "0x7690f887a6aFe5fc27BD9B4D67C76a83ab44E1a4",
+    "0x52d53D2bb353d63f85655C26163f535EAEaBDb09"
+  ],
+  "shares": {
+    "safe": "950000000000000000",
+    "bankr": "0",
+    "collector": "0",
+    "other": "50000000000000000"
+  },
+  "deployments": [
+    {
+      "name": "StakedRewardRelay",
+      "address": "0x0489c70E4C51F1518f3514728CDfB77F6a4A2C88",
+      "hash": "0x2e92ebbcf0ed7c391e85d40ee7c013bc388d4477c4527a7f9aeef6f3924a99a3",
+      "block": "51932597",
+      "runtimeHash": "0x2fe2a67ffd3aa4880e01eabd612550624c03f22afc1a1321c8908aaee1679713"
+    },
+    {
+      "name": "StakedAutomationGuard",
+      "address": "0x2962643Fe17228D05bB51f71378e6d258b96848e",
+      "hash": "0x1d38eb669a7b417bf44d436eb24b5436ddac9b2a083de71cc14ab3c6c0f4263b",
+      "block": "51932612",
+      "runtimeHash": "0xb32bf1895087e1ca68a998761f7ff53ad57ef9c3ea955c8f05104126155dfbbf"
+    },
+    {
+      "name": "StakedBoundedBuybackExecutor",
+      "address": "0xEfDdAECA280FdAD3ce8aF2A42177E1fF5925a8B5",
+      "hash": "0x77316780622c9c17c7528115b6995532efa7e62ddf0f768390af14cdc8d4945e",
+      "block": "51932631",
+      "runtimeHash": "0x041c5b70ed5bf53626df21a7350bc4f3ab75e3d96a81f81befe435c567165e3a"
+    },
+    {
+      "name": "StakedFeeCollector",
+      "address": "0xb6F61e30420bad8F5C636E8DDFFba61a90167393",
+      "hash": "0x48a6b1b6195a561685b1cebab91f7d08f657bcf51755c9e802ad0ff2ddbaf1e0",
+      "block": "51932657",
+      "runtimeHash": "0xa118a3a632e41acab87178f594c84e8ab0c624a198943c4b4835e9d0b111bf82"
+    }
+  ],
+  "guard": {
+    "paused": true,
+    "operator": "0x0000000000000000000000000000000000000000",
+    "executor": "0x0000000000000000000000000000000000000000",
+    "nonce": "0",
+    "remainingBnkr": "0",
+    "remainingUsdc": "0"
+  },
+  "fees": [
+    {
+      "name": "StakedRewardRelay",
+      "gasUsed": "707488",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "92667225261",
+      "executionPlusL1FeeWei": "4337595225261"
+    },
+    {
+      "name": "StakedAutomationGuard",
+      "gasUsed": "1842365",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "212353856006",
+      "executionPlusL1FeeWei": "11266543856006"
+    },
+    {
+      "name": "StakedBoundedBuybackExecutor",
+      "gasUsed": "1733749",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "218585980841",
+      "executionPlusL1FeeWei": "10621079980841"
+    },
+    {
+      "name": "StakedFeeCollector",
+      "gasUsed": "736291",
+      "effectiveGasPrice": "6005000",
+      "l1Fee": "105447802356",
+      "executionPlusL1FeeWei": "4526875257356"
+    }
+  ],
+  "checks": {
+    "successfulCanonicalReceipts": true,
+    "exactCreationBytecodeAndArguments": true,
+    "expectedSenderNoncesAddresses": true,
+    "runtimeAndImmutableGetters": true,
+    "executorPoolKey": true,
+    "safeThreshold": 2,
+    "safeOwnerCount": 3,
+    "legacyOwnersAreSafe": true,
+    "legacyPendingOwnersZero": true,
+    "legacyKeepersZero": true,
+    "payoutWalletsSafe": true,
+    "bankrAllowancesZero": true,
+    "feeSharesUnchanged": true,
+    "originalVaultWiringUnchanged": true,
+    "guardUnconfigured": true
+  },
+  "notes": [
+    "Read-only verification. No transaction was signed, proposed or broadcast.",
+    "Wiring preconditions passed; the generated candidate batch was not published or executed.",
+    "Off-chain Bankr schedules and its existing BNKR staking position were not queried.",
+    "Fee subtotals include execution and L1 data fees only; they are not a claim about any additional fee components."
+  ]
+}

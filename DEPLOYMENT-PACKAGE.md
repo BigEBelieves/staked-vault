@@ -1,4 +1,9 @@
-# Deployment preparation — unsigned, helpers not deployed
+# Deployment tooling — helpers deployed, wiring pending
+
+The four helpers were deployed on Base on September 29, 2026. See [DEPLOY.md](DEPLOY.md)
+for the confirmed addresses and source verification. Do not repeat the creation transactions.
+The remaining CLI workflow prepares unsigned Safe configuration batches.
+
 
 This package prepares four direct contract-creation transactions, verifies their receipts and
 runtime code, and then generates separate Safe Transaction Builder files for wiring, fee rights,

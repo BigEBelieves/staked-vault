@@ -31,7 +31,8 @@ Anvil 1.7.1 with the Optimism/Jovian engine. Block hash:
 `0x49e5675c2b3d823d6c125762ce8557f14669d76a0f08d85bc118bcad04827ad7`.
 
 The same branch passes all **146 offline checks**. No production contract changes were needed
-as a result of this integration run. New helpers are still undeployed on Base.
+as a result of this integration run. The helpers were later deployed on Base;
+see [DEPLOY.md](DEPLOY.md) for the separate live deployment record.
 
 | Local fork scenario | Observed result |
 |---|---|

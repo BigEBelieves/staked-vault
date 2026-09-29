@@ -18,9 +18,31 @@ Known addresses and pool parameters are in [config/base.json](config/base.json).
 
 The recorded integration run passed 67 checks against Base block 51,929,714, including actual
 Safe execution, fee collection, v3/v4 swaps and rollback. See [FORK-TESTING.md](FORK-TESTING.md).
-The helpers remain undeployed; fresh-state simulation and independent review are still required.
+The helpers are now deployed. Fresh-state Safe batch simulation and independent review remain required before activation.
 
-## Proposed helpers — not deployed
+## Helpers deployed — wiring and activation pending
+
+Configuration verified at Base block **51932777**. All helpers are Safe-controlled.
+The guard is paused; operator, executor and budgets are zero. Both legacy keeper fields remain
+zero, existing reward/executor links remain unchanged, the Safe retains its 95% fee share, and
+the three Bankr token allowances remain zero. No wiring or activation transaction was sent.
+
+Deployment source: `94e771c9e528028792b2100968778fdcaa870b33`. Rabby EOA: `0xa741dad09fff5de643283142ed339b9f0b52b146`, nonces 199–202.
+All four direct creations succeeded with zero ETH constructor value.
+
+| Helper | Address / verified source | Deployment transaction |
+|---|---|---|
+| StakedRewardRelay | [0x0489c70E4C51F1518f3514728CDfB77F6a4A2C88](https://repo.sourcify.dev/8453/0x0489c70E4C51F1518f3514728CDfB77F6a4A2C88) | [0x2e92ebbc…](https://basescan.org/tx/0x2e92ebbcf0ed7c391e85d40ee7c013bc388d4477c4527a7f9aeef6f3924a99a3) |
+| StakedAutomationGuard | [0x2962643Fe17228D05bB51f71378e6d258b96848e](https://repo.sourcify.dev/8453/0x2962643Fe17228D05bB51f71378e6d258b96848e) | [0x1d38eb66…](https://basescan.org/tx/0x1d38eb669a7b417bf44d436eb24b5436ddac9b2a083de71cc14ab3c6c0f4263b) |
+| StakedBoundedBuybackExecutor | [0xEfDdAECA280FdAD3ce8aF2A42177E1fF5925a8B5](https://repo.sourcify.dev/8453/0xEfDdAECA280FdAD3ce8aF2A42177E1fF5925a8B5) | [0x77316780…](https://basescan.org/tx/0x77316780622c9c17c7528115b6995532efa7e62ddf0f768390af14cdc8d4945e) |
+| StakedFeeCollector | [0xb6F61e30420bad8F5C636E8DDFFba61a90167393](https://repo.sourcify.dev/8453/0xb6F61e30420bad8F5C636E8DDFFba61a90167393) | [0x48a6b1b6…](https://basescan.org/tx/0x48a6b1b6195a561685b1cebab91f7d08f657bcf51755c9e802ad0ff2ddbaf1e0) |
+
+Sourcify reports exact creation and runtime source matches for all four contracts. Its automatic
+submissions to Etherscan/BaseScan and Blockscout hit provider limits, so this does not claim
+verification on those explorers. Source matching is not an independent security audit.
+
+See [live configuration verification](deployments/base-20260929-verification.json) and
+[source-verification responses](deployments/base-20260929-sources.json).
 
 Use [DEPLOYMENT-PACKAGE.md](DEPLOYMENT-PACKAGE.md) for the unsigned deployment planner,
 receipt/runtime verification, and staged Safe batch generator. The independent review scope is in
@@ -31,8 +53,8 @@ Follow [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md), including fork tests, con
 Safe batch simulation, guarded trial, receipt checks and rollback. Keep the existing vault and
 its user positions; the reward relay and guarded executor connect through existing setters.
 
-No deployment address is assigned to a helper by this branch. Editing Solidity does not update
-an already deployed contract. Source verification and explicit Safe transactions are required.
+Editing Solidity does not update an already deployed contract. Connecting these helpers to
+the live vault requires explicit Safe transactions; trading activation remains a separate step.
 
 ## Build and test
 

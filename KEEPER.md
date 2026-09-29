@@ -1,13 +1,14 @@
-# Keeper runbook — guarded version, deployment pending
+# Keeper runbook — helpers deployed, activation pending
 
 **Keep the old jobs disabled.** The previous daily/hourly Bankr commands are retired. They relied
 on Bankr owning contracts, holding fee rights and using 3–5% quote tolerances. The Safe now owns
-those administrative rights; new helper contracts in this branch still require deployment and review.
+those administrative rights; the four helper contracts are deployed but still require Safe wiring and review before activation.
+See [DEPLOY.md](DEPLOY.md) for the deployment record.
 See [SECURITY-MIGRATION.md](SECURITY-MIGRATION.md) for the complete wiring and test gates.
 See [PRIVATE-SUBMISSION.md](PRIVATE-SUBMISSION.md) for documented Base submission options and
 the still-unverified provider/Bankr signing requirements. No sender is implemented in this branch.
 
-## Authority
+## Intended authority after wiring
 
 - Safe: protocol owners, payout destination, helper authority, policy approvals and unpause.
 - Guard: the only automation keeper address configured on the existing vault and distributor.
@@ -22,7 +23,7 @@ reference quotes, caps each trade, caps total spending, and specifies an absolut
 Expiry or exhausted budgets stop execution. Only the Safe can renew. This version does not provide
 unattended oracle updates, and the policy is not a TWAP.
 
-## Loop after deployment
+## Loop after wiring and activation
 
 1. Trigger `collector.collectAndDistribute()`. No swap occurs. Fee splits go to burn, Safe and queue.
 2. Read `pendingSwapBnkr`, policy, remaining budget, pause state and nonce. If the full queue exceeds
