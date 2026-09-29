@@ -5,11 +5,12 @@ import {readFileSync,writeFileSync,mkdtempSync,createWriteStream} from 'node:fs'
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {createInterface} from 'node:readline';
+import {toEventSelector,toHex} from 'viem';
 import {publicSummary,publicFailure} from './ci-summary.mjs';
 const providers=['https://base-rpc.publicnode.com','https://mainnet.base.org'];
-const C=JSON.parse(readFileSync('config/base.json'));
+const C={...JSON.parse(readFileSync('config/base.json')),...JSON.parse(readFileSync('config/v3-migration.json'))};
 function rpc(endpoint,method,params){
- assert(['eth_chainId','eth_getBlockByNumber','eth_call'].includes(method));
+ assert(['eth_chainId','eth_getBlockByNumber','eth_call','eth_getLogs'].includes(method));
  const result=JSON.parse(execFileSync('curl',['-fsS','--connect-timeout','5','--max-time','15',endpoint,'-H','Content-Type: application/json','--data',JSON.stringify({jsonrpc:'2.0',id:1,method,params})],{encoding:'utf8',stdio:['ignore','pipe','pipe']}));
  assert('result' in result&&!result.error,'RPC result required');return result.result;
 }
@@ -21,6 +22,9 @@ for(const endpoint of providers){
   assert.match(block.hash,/^0x[0-9a-f]{64}$/i);assert(BigInt(block.number)>0n);
   const route=rpc(endpoint,'eth_call',[{to:C.distributor,data:'0xc31c9c07'},block.number]);
   assert.equal('0x'+route.slice(-40).toLowerCase(),C.v3Router.toLowerCase());
+  const from=BigInt(C.vaultDeploymentBlock),to=from+99n;
+  assert(to<=BigInt(block.number));
+  assert(Array.isArray(rpc(endpoint,'eth_getLogs',[{address:C.vault,topics:[toEventSelector('Staked(address,uint256,uint256)')],fromBlock:toHex(from),toBlock:toHex(to)}])),'Historical depositor logs required');
   selected={endpoint,block};break;
  }catch{console.log('Read-provider preflight failed; no fork or writes started.');}
 }

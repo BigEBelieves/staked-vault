@@ -6,7 +6,10 @@ branch, website, contract deployment, wallet signing or scheduler step.
 The workflow installs locked Node dependencies and Anvil 1.7.1, compiles the
 contracts, tests the public-summary filter, then performs the migration on a
 loopback-only Base fork. An initial read-only preflight selects one public
-provider and pins a block. The provider remains fixed for the entire run.
+provider and pins a block. Preflight requires contract reads and historical
+depositor logs; a provider that rejects either is not selected. The provider
+remains fixed for the entire run. Historical logs use complete 100-block pages,
+and the read proxy paces requests and retries transient rate limits.
 The upstream proxy denies write methods. All Safe approvals, contract creations,
 asset movements, impersonation and time changes occur only on local Anvil.
 
