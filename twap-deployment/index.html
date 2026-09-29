@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STAKED — automatic fee keeper</title><link rel="stylesheet" href="../deployment/style.css"></head>
+<body><main><h1>Deploy the automatic fee keeper</h1>
+<p>One contract creation on Base. It starts paused. Your Safe controls it.</p>
+<p>Choose the deployment file prepared for your wallet. The file stays in this browser.</p>
+<input id="file" type="file" accept=".json,application/json">
+<section id="details" hidden><p>Deployment wallet: <code id="wallet"></code></p>
+<p>Safe authority: <code id="safe"></code></p><p>New keeper: <code id="keeper"></code></p>
+<p><a id="source" target="_blank" rel="noopener noreferrer">Contract source</a></p>
+<details><summary>File fingerprint and creation details</summary><pre id="summary"></pre></details></section>
+<p id="status" role="status">Choose your prepared deployment file to begin.</p>
+<div><button id="connect" disabled>Connect Rabby</button> <button id="base" disabled>Select Base</button>
+<button id="refresh" disabled>Check progress</button> <button id="deploy" disabled>Deploy keeper</button></div>
+<p><a id="receipt" target="_blank" rel="noopener noreferrer" hidden>View transaction on BaseScan</a></p>
+<section id="recovery" hidden><p>Submission status is uncertain. Find the creation transaction in Rabby, then recover its receipt before retrying.</p>
+<input id="hash" placeholder="0x transaction hash"><button id="recover" disabled>Recover receipt</button></section>
+<p>This page only deploys the inactive keeper. It does not collect fees, swap tokens, request token approvals or activate automation. Keep the creation transaction hash for the Safe setup.</p>
+<p>This is new contract code, not an independently audited release. Deployed code cannot be edited; the Safe can install a replacement.</p>
+</main><script type="module" src="app.mjs"></script></body></html>
