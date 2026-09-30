@@ -181,14 +181,20 @@ const legacyQuote=(await pc.simulateContract({address:C.v3Quoter,abi:quoterAbi,f
 const legacyFloor=await call('StakedTwapKeeper',C.oldKeeper,'minimumUsdc',[legacyInput]);
 await write(C.oldKeeper,abi('StakedTwapKeeper'),'swapAndNotify',[legacyInput,legacyQuote>legacyFloor?legacyQuote:legacyFloor,Number((await pc.getBlock()).timestamp+60n),await call('StakedTwapKeeper',C.oldKeeper,'nonce')],C.bankr);
 check(await call('StakedTwapKeeper',C.oldKeeper,'spentLast24Hours')===legacyInput,'real legacy swap consumes budget immediately before cutover');
+// Leave nonzero protected dust after the legacy trade. Cutover collection
+// may legitimately grow this queue; it must never consume its existing amount.
+await write(C.bnkr,tokenAbi,'transfer',[C.distributor,2n]);await write(C.distributor,abi('StakedDistributor'),'distribute',[],outsider);
 const oldQueueAtCutover=await call('StakedDistributor',C.distributor,'pendingSwapBnkr');
+check(oldQueueAtCutover>0n,'nonzero protected legacy queue remains before cutover');
 console.log('[migration] atomic fee cutover; old claims remain accessible');
 const cutover=await prepareV3Stage(pc,C,A,plan,hashes,'cutover');
 await safeBatch(cutover.batch.transactions,'generated cutover executes as one real Safe transaction');
 check(await call('StakedTwapKeeper',C.oldKeeper,'paused')&&same(await call('StakedTwapKeeper',C.oldKeeper,'operator'),ZERO),'old operator removed and old keeper paused');
 check(!await call('StakedTwapKeeperV3',H.keeper,'paused')&&same(await call('StakedTwapKeeperV3',H.keeper,'operator'),C.bankr),'new keeper is the only enabled conversion operator path');
 check(await read(C.initializer,feeAbi,'getShares',[C.poolId,H.collector])===950000000000000000n,'new collector owns exactly 95% after cutover');
-check(await call('StakedDistributor',C.distributor,'pendingSwapBnkr')===oldQueueAtCutover,'old protected queue remains accounted for');
+const oldQueueAfterCutover=await call('StakedDistributor',C.distributor,'pendingSwapBnkr');
+check(oldQueueAfterCutover>=oldQueueAtCutover,'old protected queue remains accounted for');
+check(await balance(C.bnkr,C.distributor)>=oldQueueAfterCutover,'legacy queue remains fully backed after fee collection');
 check(await call('StakedTwapKeeperV3',H.keeper,'spentLast24Hours')===legacyInput,'cutover preserves real legacy rolling spend');
 check(await call('StakedVault',C.vault,'buybackReserve')===oldReserve,'old buyback reserve not swept');
 await assert.rejects(prepareV3Stage(pc,C,A,plan,hashes,'cutover'));check(true,'completed cutover cannot be prepared again');
