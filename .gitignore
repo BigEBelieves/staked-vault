@@ -1,3 +1,10 @@
 node_modules/
 build/
 .DS_Store
+node_modules
+/assets/vault/
+/legacy/index.html
+/index.html
+/web/index.html
+
+/_headers
