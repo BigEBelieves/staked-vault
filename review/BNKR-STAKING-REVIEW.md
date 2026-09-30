@@ -8,7 +8,7 @@ This is an implementation review, not an independent audit or external approval.
 
 No blocking issue was identified in this review of the adapter's authority,
 principal/yield accounting, external staking interface, and delayed activation.
-The adapter has not been deployed. Existing automation and live assets were not
+At the time of this pre-deployment review, the adapter had not been deployed. For subsequent deployment status, see `bnkr-live/`. Existing automation and live assets were not
 changed. An independent reviewer has not submitted a GitHub review on PR #3.
 
 The review checked the adapter against the verified Bankr `stake`, `getReward`,

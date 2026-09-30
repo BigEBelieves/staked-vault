@@ -1,6 +1,6 @@
 # BNKR staking yield integration — review candidate
 
-Status: built for review; not deployed, not activated, no live transactions sent.
+Status: adapter deployed and verified on Base, still paused and unconfigured. Deployment tx: `0x05f53d042c5c29363ff7d204436635afcfb76300a49abfd992526d572fb4c914`; address: `0xF495BF917D159942ACC6c926Ab883d5a20cF2A05`. Sourcify creation/runtime exact match. Safe scheduling has NOT executed and the 48-hour countdown has NOT started. See `review/bnkr-live/` for current evidence and the verified scheduling batch.
 
 ## What this adds
 
@@ -76,4 +76,4 @@ For destination rollback, schedule `distributor.setBnkrStakingWallet(Safe)`, wai
 
 ## Prepared review package
 
-See `review/BNKR-STAKING-REVIEW.md` for the implementation review and exact CI evidence. `review/bnkr-unsigned/` contains unsigned creation/scheduling/activation data prepared for Rabby nonce 217, with a successful Base creation simulation. `bnkr-deployment/` contains a one-contract signing page, not yet hosted or used. Contract code remains pinned to revision `d16ecaedab1149971f834fcb21623ed03f1fc0bd`. Revalidate the nonce and state before any use.
+See `review/BNKR-STAKING-REVIEW.md` for the implementation review and exact CI evidence. `review/bnkr-unsigned/` contains unsigned creation/scheduling/activation data prepared for Rabby nonce 217, with a successful Base creation simulation. `bnkr-deployment/` contains the signing page used for the completed creation; do not deploy again. Contract code remains pinned to revision `d16ecaedab1149971f834fcb21623ed03f1fc0bd`. Revalidate the nonce and state before any use.

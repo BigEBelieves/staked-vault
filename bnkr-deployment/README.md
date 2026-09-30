@@ -1,6 +1,6 @@
 # BNKR staking adapter: Rabby deployment package
 
-Prepared for review, not published as a live signing site. No transaction was sent.
+DEPLOYMENT COMPLETED. This page was hosted at https://small-cloud-986d.eosullivan1377.workers.dev/ and used for tx `0x05f53d042c5c29363ff7d204436635afcfb76300a49abfd992526d572fb4c914`. The adapter is verified and paused. Do not deploy again. See `review/bnkr-live/` for the next Safe scheduling step.
 Contract source is pinned to `d16ecaedab1149971f834fcb21623ed03f1fc0bd`.
 
 This package uses the existing deployment engine for one direct CREATE on Base.
