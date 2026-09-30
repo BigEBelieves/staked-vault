@@ -6,7 +6,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
     // ==========================================
     // CONFIGURATION CONSTANTS
     // ==========================================
-    const WC_PROJECT_ID = "2f05ae7f1116030fde2d36508f472bfb";
+    const WC_PROJECT_ID = "8970cd9ed5eb0de88206ad00f50b813b";
 
     // Minimal ABIs
     const ERC20_ABI = [

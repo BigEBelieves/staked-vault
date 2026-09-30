@@ -28,12 +28,12 @@ No private keys are entered into this site. Legacy and V3 share the pending-requ
 
 ## Remaining release checks
 
-- Restrict the existing Reown/WalletConnect project to the intended Cloudflare origin and later the custom domain. The project ID is public; account ownership and its allowlist have NOT been verified here.
+- WalletConnect uses the user-controlled Reown project `8970cd9ed5eb0de88206ad00f50b813b`, shared with the existing Raffle Hood site. The user reported adding `https://stakedvault.app` on September 30, 2026; Reown displayed up to six hours for propagation. Preserve Raffle Hood's existing entry. Retest WalletConnect on the custom domain after deployment and propagation. The temporary workers.dev origin is not included in this reported allowlist change.
 - Test real iOS and Android wallet handoffs (same-phone browser and wallet app, returning to the page, rejection, reconnect and wrong chain). Test desktop Rabby and QR-to-phone connection. No real-money wallet actions were performed by the automated tests.
 - Check Safari and Firefox in addition to the automated Chromium checks.
 - Verify Cloudflare serves `/legacy/`, all lazy chunks, CSP headers and licenses; inspect browser console and wallet connection. Do not redirect missing assets to the app HTML.
 - Inspect the published contract links, correct account balances, and the old/new vault selection before signing any test transaction. No further stake is authorized by generating this website.
-- Live BNKR conversion and the first scheduled automation run remain separate operational checks. A zero queue does not test conversion.
+- The September 30 scheduled fee collection succeeded (Base transaction `0x0e3783402c6442608e47792b0c4f308da167407e6014de8fb1ec5d52eed1da51`). Live BNKR conversion remains untested: the zero queue caused conversion to be skipped.
 - Protect GitHub branches with required checks; enable account 2FA. These account settings are not changed by this branch.
 
 The tests are regression checks, not an independent security audit. Hold broad public promotion until the real-device checks pass.
