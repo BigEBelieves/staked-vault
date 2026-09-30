@@ -1,0 +1,58 @@
+import assert from 'node:assert/strict';
+import {prepareBankrYieldAction,revalidateBankrYieldAction} from '../scripts/bnkr-staking-plan.mjs';
+import {createPublicClient,createWalletClient,http,parseAbi,encodeDeployData,encodeFunctionData,toHex,keccak256} from 'viem';
+import {base} from 'viem/chains';
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+const endpoint=process.env.LOCAL_FORK_RPC_URL??'http://127.0.0.1:19545';
+assert(['127.0.0.1','localhost'].includes(new URL(endpoint).hostname),'LOCAL ONLY');
+const transport=http(endpoint,{timeout:600000,retryCount:0});
+const p=createPublicClient({chain:base,transport,cacheTime:0,pollingInterval:100});const w=createWalletClient({chain:base,transport});
+assert.match(await p.request({method:'web3_clientVersion'}),/^anvil\//);
+const node=await p.request({method:'anvil_nodeInfo'});assert.equal(BigInt(node.forkConfig.forkBlockNumber),BigInt(process.env.BASE_FORK_BLOCK??52009577));
+const A=JSON.parse(readFileSync('build/all.json'));
+const safe='0xb9066550918fa778a4039120eac878230cf8f6FC',bankr='0x88470240FF0663Faefa68B1D7621b472DdD9584A',bnkr='0x22af33fe49fd1fa80c7149773dde5890d3c76f3b',relay='0xf9421C19ff9e6a09b30BdF9183739A232C3F33bF',vault='0x6E6c236D5EF18cAF835fAf2bD495ED48e3F8CCc5',dist='0x5E22cC89dA97c5C07F19AE332be62f9Ed41B68d5';
+const [actor,operator,outsider]=await p.request({method:'eth_accounts'});
+await p.request({method:'anvil_impersonateAccount',params:[safe]});await p.request({method:'anvil_setBalance',params:[safe,toHex(10n**20n)]});
+const erc=parseAbi(['function balanceOf(address) view returns(uint256)','function allowance(address,address) view returns(uint256)','function transfer(address,uint256) returns(bool)','function approve(address,uint256) returns(bool)']);
+const bAbi=A.BankrStakingV3.abi;const read=(address,abi,functionName,args=[])=>p.readContract({address,abi,functionName,args});
+const bal=a=>read(bnkr,erc,'balanceOf',[a]);
+let checks=0;const check=(v,m)=>{assert(v,m);console.log('ok',m);checks++;};
+async function receiptFor(hash){ await p.request({method:'evm_mine',params:[]});return p.waitForTransactionReceipt({hash}); }
+async function tx(to,abi,fn,args=[],account=safe){const hash=await w.sendTransaction({account,to,data:encodeFunctionData({abi,functionName:fn,args}),value:0n,gas:6000000n});const r=await receiptFor(hash);assert.equal(r.status,'success',fn);return r;}
+async function warp(sec){await p.request({method:'evm_increaseTime',params:[sec]});await p.request({method:'evm_mine',params:[]});}
+const code=await p.getBytecode({address:bankr});check(keccak256(code)==='0xd5aed805076ee0ed5e564daf83ae17fbe099347b87d443db69159571c87e21c3','real Bankr runtime hash matches verified source');
+const receipt=await receiptFor(await w.sendTransaction({account:actor,data:encodeDeployData({abi:A.StakedBankrStakingAdapter.abi,bytecode:A.StakedBankrStakingAdapter.bytecode,args:[safe,bnkr,bankr,relay]}),gas:6000000n}));assert.equal(receipt.status,'success');const helper=receipt.contractAddress,abi=A.StakedBankrStakingAdapter.abi;
+const min=10n**18n;
+const policy=[operator,20n*min,40n*min];
+await tx(helper,abi,'scheduleConfiguration',[encodeFunctionData({abi,functionName:'setPolicy',args:policy})]);
+await tx(dist,A.StakedDistributorV3.abi,'scheduleConfiguration',[encodeFunctionData({abi:A.StakedDistributorV3.abi,functionName:'setBnkrStakingWallet',args:[helper]})]);
+await tx(relay,A.StakedRewardRelay.abi,'setYieldSource',[helper,true]);await warp(172800);
+await tx(helper,abi,'setPolicy',policy);await tx(dist,A.StakedDistributorV3.abi,'setBnkrStakingWallet',[helper]);await tx(helper,abi,'setPaused',[false]);
+check((await read(dist,A.StakedDistributorV3.abi,'bnkrStakingWallet')).toLowerCase()===helper.toLowerCase(),'delayed destination change uses existing distributor');
+check(await bal(safe)>=20n*min,'Safe owns sufficient fee-derived BNKR in fork');
+const queueBefore=await read(dist,A.StakedDistributorV3.abi,'pendingSwapBnkr');
+await tx(bnkr,erc,'approve',[dist,20n*min]);await tx(dist,A.StakedDistributorV3.abi,'depositAndDistribute',[0n,20n*min]);
+check(await bal(helper)===10n*min,'real distributor sends 50% BNKR to helper');
+check(await read(dist,A.StakedDistributorV3.abi,'pendingSwapBnkr')===queueBefore+10n*min,'USDC queue retains the other 50%');
+const cfg={safe,operator,bnkr,staking:bankr,relay,vault,distributor:dist,stakingCodeHash:keccak256(code),proposedMaxStakePerDay:'20',proposedMaxPrincipal:'40'};
+const stakePlan=await prepareBankrYieldAction(p,cfg,A,helper,'stake');check(!stakePlan.skipped,'planner prepares stake with live fork state');await revalidateBankrYieldAction(p,cfg,A,stakePlan);
+await tx(helper,abi,'stakeFees',[10n*min],operator);
+check(await read(bankr,bAbi,'stakeOf',[helper])===10n*min,'real Bankr stake succeeds from contract');
+check(await read(bnkr,erc,'allowance',[helper,bankr])===0n,'exact stake allowance removed');
+await warp(86400);
+const idleBefore=await read(helper,abi,'idlePrincipal');const hp=await prepareBankrYieldAction(p,cfg,A,helper,'harvest');check(!hp.skipped,'planner prepares real earned harvest');await revalidateBankrYieldAction(p,cfg,A,hp);await tx(helper,abi,'harvest',[],operator);
+const claimed=await read(helper,abi,'pendingYield');check(claimed>0n,'actual Bankr reward stream pays helper');
+check(await read(helper,abi,'idlePrincipal')===idleBefore,'actual harvest keeps principal separate');
+const vb=await bal(vault);await tx(helper,abi,'relayYield',[],operator);
+check(await bal(vault)===vb+claimed,'real relay delivers measured yield into existing STAKED vault');
+check(await read(bnkr,erc,'allowance',[helper,relay])===0n,'real relay allowance removed');
+await assert.rejects(p.simulateContract({address:helper,abi,functionName:'requestUnstake',args:[min],account:operator}));check(true,'operator cannot recover principal');
+await tx(helper,abi,'setPaused',[true]);await tx(helper,abi,'requestUnstake',[10n*min]);
+await assert.rejects(p.simulateContract({address:helper,abi,functionName:'withdrawPrincipal',account:safe}));check(true,'real Bankr rejects premature withdrawal');
+await warp(172800);const sb=await bal(safe);await tx(helper,abi,'withdrawPrincipal');
+check(await bal(safe)===sb+10n*min,'real principal returns to Safe after 48h');
+check(await read(helper,abi,'coolingPrincipal')===0n,'cooling reserve cleared');
+// Safe can restore old fee destination under the normal delay; no vault migration.
+const restore=encodeFunctionData({abi:A.StakedDistributorV3.abi,functionName:'setBnkrStakingWallet',args:[safe]});await tx(dist,A.StakedDistributorV3.abi,'scheduleConfiguration',[restore]);await warp(172800);await tx(dist,A.StakedDistributorV3.abi,'setBnkrStakingWallet',[safe]);
+check((await read(dist,A.StakedDistributorV3.abi,'bnkrStakingWallet')).toLowerCase()===safe.toLowerCase(),'rollback restores Safe fee destination after notice');
+mkdirSync('build',{recursive:true});writeFileSync('build/bnkr-fork-report.json',JSON.stringify({mode:'LOCAL FORK ONLY',forkBlock:String(node.forkConfig.forkBlockNumber),checks,claimed:String(claimed),staking:bankr,codeHash:keccak256(code),limitations:['Safe impersonated locally; real signatures not tested.','Native gas balances changed locally. Token balances and external staking code were not patched.','Future rewards and API availability are not guaranteed.']},null,2));console.log(checks,'checks passed');

@@ -5,7 +5,8 @@ import { setTimeout } from 'node:timers/promises';
 const executable = process.env.ANVIL_BIN ?? 'anvil';
 const upstream = process.env.BASE_READ_RPC_URL ?? 'https://mainnet.base.org';
 const twap = process.argv.includes('--twap');
-const migration = process.argv.includes('--v3-migration');
+const bankrStaking = process.argv.includes('--bnkr-staking');
+const migration = bankrStaking || process.argv.includes('--v3-migration');
 const planOnly = process.argv.includes('--v3-plan');
 const block = process.env.BASE_FORK_BLOCK ?? (twap ? '51948371' : '51929714');
 if (migration && !process.env.BASE_FORK_BLOCK) throw new Error('V3 migration requires an explicit freshly checked BASE_FORK_BLOCK');
@@ -50,7 +51,7 @@ try {
   console.log('Local client:', await ready(url, 'web3_clientVersion'));
   console.log('Node info:', JSON.stringify(await ready(url, 'anvil_nodeInfo')));
   if (!process.argv.includes('--smoke')) {
-    const child = spawn(process.execPath, [migration ? 'test/v3-migration-fork.test.mjs' : twap ? 'test/twap-fork.test.mjs' : 'test/base-fork.test.mjs'], {stdio: 'inherit', env: {...process.env, LOCAL_FORK_RPC_URL: url, UPSTREAM_READ_RPC_URL:`http://127.0.0.1:${upstreamPort}`, BASE_FORK_BLOCK: block}});
+    const child = spawn(process.execPath, [bankrStaking ? 'test/bnkr-staking-fork.test.mjs' : migration ? 'test/v3-migration-fork.test.mjs' : twap ? 'test/twap-fork.test.mjs' : 'test/base-fork.test.mjs'], {stdio: 'inherit', env: {...process.env, LOCAL_FORK_RPC_URL: url, UPSTREAM_READ_RPC_URL:`http://127.0.0.1:${upstreamPort}`, BASE_FORK_BLOCK: block}});
     processes.push(child);
     const code = await new Promise(resolve => child.on('exit', resolve));
     if (code !== 0) throw new Error(`Fork test exited ${code}`);

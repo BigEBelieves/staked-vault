@@ -1,0 +1,14 @@
+{
+  "chainId": 8453,
+  "safe": "0xb9066550918fa778a4039120eac878230cf8f6FC",
+  "operator": "0x1a3091097126D69a4f955051D4d018c1AE3cdcF8",
+  "bnkr": "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b",
+  "staking": "0x88470240FF0663Faefa68B1D7621b472DdD9584A",
+  "stakingCodeHash": "0xd5aed805076ee0ed5e564daf83ae17fbe099347b87d443db69159571c87e21c3",
+  "relay": "0xf9421C19ff9e6a09b30BdF9183739A232C3F33bF",
+  "vault": "0x6E6c236D5EF18cAF835fAf2bD495ED48e3F8CCc5",
+  "distributor": "0x5E22cC89dA97c5C07F19AE332be62f9Ed41B68d5",
+  "proposedMaxStakePerDay": "120000",
+  "proposedMaxPrincipal": "240000",
+  "status": "REVIEW ONLY - no adapter deployed or activated"
+}
