@@ -50,6 +50,8 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
     let userEarnedUSDC = ethers.BigNumber.from(0);
     let userEarnedBNKR = ethers.BigNumber.from(0);
 
+    let accountDataLoaded = false;
+    let refreshingAccount = false;
     let activeTab = "stake";
     let countdownInterval = null;
 
@@ -431,21 +433,26 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
 
     // Refresh Data
     async function refreshUserData() {
-      if (!userAddress || !stakedTokenContract) return;
+      if (!userAddress || refreshingAccount) return;
+      refreshingAccount = true;
+      const readAccount = userAddress;
+      const readToken = new ethers.Contract(CONFIG.STAKED_TOKEN, ERC20_ABI, readProvider);
+      const readVault = new ethers.Contract(CONFIG.VAULT_ADDRESS, VAULT_ABI, readProvider);
+      document.getElementById('accountReadStatus').textContent = 'Refreshing your balances…';
 
       try {
         // Read STAKED balance
-        userWalletBalance = await stakedTokenContract.balanceOf(userAddress);
+        userWalletBalance = await readToken.balanceOf(readAccount);
         document.getElementById("walletTokenBalance").innerText = parseFloat(ethers.utils.formatUnits(userWalletBalance, 18)).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
         if (vaultContract) {
           // Read Vault state
           const [total, userStaked, expiry, earnedU, earnedB] = await Promise.all([
-            vaultContract.totalSupply(),
-            vaultContract.balanceOf(userAddress),
-            vaultContract.lockEnd(userAddress),
-            vaultContract.earned(CONFIG.USDC_TOKEN, userAddress),
-            vaultContract.earned(CONFIG.BNKR_TOKEN, userAddress)
+            readVault.totalSupply(),
+            readVault.balanceOf(readAccount),
+            readVault.lockEnd(readAccount),
+            readVault.earned(CONFIG.USDC_TOKEN, readAccount),
+            readVault.earned(CONFIG.BNKR_TOKEN, readAccount)
           ]);
 
           userStakedBalance = userStaked;
@@ -465,7 +472,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
           document.getElementById("earnedBNKRDisplay").innerText = bnkrNum.toFixed(4);
 
           // Allowance
-          currentAllowance = await stakedTokenContract.allowance(userAddress, CONFIG.VAULT_ADDRESS);
+          currentAllowance = await readToken.allowance(readAccount, CONFIG.VAULT_ADDRESS);
 
           // Update lock countdown
           startLockCountdown();
@@ -481,12 +488,19 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
           document.getElementById("userStakedDisplay").innerText = "0.00";
         }
 
+        accountDataLoaded = true;
+        document.getElementById('accountReadStatus').textContent = 'Balances updated from Base.';
         validateStakeInput();
         validateUnstakeInput();
 
       } catch (err) {
-        console.error("Error refreshing data:", err);
-      }
+        accountDataLoaded = false;
+        document.getElementById('userStakedDisplay').textContent = 'Unavailable';
+        document.getElementById('userStakedBalSub').textContent = 'Unavailable';
+        document.getElementById('accountReadStatus').textContent = 'Your wallet is connected, but balances could not load. Tap Refresh balances to try again.';
+        for (const id of ['stakeActionBtn','unstakeActionBtn','claimRewardsBtn','reduceApprovalBtn']) document.getElementById(id).disabled = true;
+        console.warn('Account balance read unavailable', err.code || 'unknown');
+      } finally { refreshingAccount = false; }
     }
 
     // Countdown Timer Loop
@@ -534,6 +548,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
     // Input Validation
     function validateStakeInput() {
       if (transactionBusy) return;
+      if (userAddress && !accountDataLoaded) { document.getElementById("stakeActionBtn").disabled = true; return; }
       document.getElementById("approvalNotice").hidden = true;
       const btn = document.getElementById("stakeActionBtn");
       if (!CONFIG.DEPOSIT_ENABLED) { btn.innerText = "New deposits use V3"; btn.disabled = true; return; }
@@ -581,6 +596,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
 
     function validateUnstakeInput() {
       if (transactionBusy) return;
+      if (userAddress && !accountDataLoaded) { document.getElementById("unstakeActionBtn").disabled = true; return; }
       const btn = document.getElementById("unstakeActionBtn");
       const warningBox = document.getElementById("penaltyWarningBox");
 
@@ -639,6 +655,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
       markBusy(true);
       try {
         await checkWallet(provider, userAddress);
+        if (!accountDataLoaded) throw new Error('Refresh account balances first');
         if (pendingRequest(userAddress)) throw new Error("Previous request unresolved");
         await operation();
         await refreshUserData();
@@ -649,7 +666,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
         markBusy(false);
         showPending();
         validateStakeInput(); validateUnstakeInput();
-        document.getElementById('claimRewardsBtn').disabled = !userAddress || Date.now()/1000 < userLockExpiry || (userEarnedUSDC.isZero() && userEarnedBNKR.isZero());
+        document.getElementById('claimRewardsBtn').disabled = !accountDataLoaded || !userAddress || Date.now()/1000 < userLockExpiry || (userEarnedUSDC.isZero() && userEarnedBNKR.isZero());
       }
     }
     async function stakeDetails() {
@@ -769,3 +786,6 @@ if (!CONFIG.DEPOSIT_ENABLED) {
   document.getElementById('vaultNotice').textContent = 'Your original stake and accrued rewards remain here. Claim or withdraw when eligible. Moving to V3 is optional and requires a separate deposit with a new seven-day lock.';
   switchTab('unstake'); document.getElementById('stakeInput').disabled = true;
 }
+
+document.getElementById('refreshBalances').addEventListener('click', refreshUserData);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible' && userAddress && !transactionBusy) refreshUserData();});

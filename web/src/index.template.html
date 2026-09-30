@@ -34,6 +34,7 @@
     <nav class="vault-nav" aria-label="Choose vault"><a href="/" id="v3Link">V3 staking</a><a href="/legacy/" id="legacyLink">Existing V2 stakes</a></nav>
     <section class="vault-notice" aria-live="polite"><strong id="vaultLabel">V3 staking</strong><p id="vaultNotice">New deposits use V3. Existing V2 stakes and reward claims remain in the original vault.</p></section>
     <section class="vault-notice" id="pendingNotice" hidden><strong>Check your last wallet request</strong><p id="pendingText"></p><label for="recoveryHash">Transaction hash, if available</label><input id="recoveryHash" placeholder="0x…" autocomplete="off"><button class="btn btn-primary" id="checkPending">Check transaction</button></section>
+    <section class="vault-notice"><p id="accountReadStatus" role="status">Connect your wallet to see your position.</p><button class="btn" id="refreshBalances">Refresh balances</button></section>
     <!-- Hero / Top Protocol Stats -->
     <div class="hero-banner">
       <div>

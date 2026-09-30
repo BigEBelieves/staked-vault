@@ -45,7 +45,8 @@ async function fixture(options={}) {
  const page=await context.newPage();
  const errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- async function rpc({method,params=[]}) {
+ async function rpc({method,params=[]}, wallet=false) {
+  if(method==='eth_call' && ((wallet && state.walletReadFail) || (!wallet && state.publicReadFail))) throw {code:-32000,message:'simulated read endpoint failure'};
   state.calls.push(method);
   if(method==='eth_chainId')return state.chain;
   if(['eth_accounts','eth_requestAccounts'].includes(method))return [state.account];
@@ -75,7 +76,7 @@ async function fixture(options={}) {
   }
   throw {code:-32601,message:'unhandled test RPC '+method};
  }
- await page.exposeFunction('__testRpc',async payload=>{try{return {result:await rpc(payload)}}catch(e){return {error:{code:e.code??-32000,message:e.message}}}});
+ await page.exposeFunction('__testRpc',async payload=>{try{return {result:await rpc(payload,true)}}catch(e){return {error:{code:e.code??-32000,message:e.message}}}});
  await page.addInitScript(()=>{
   window.cspViolations=[];
   document.addEventListener('securitypolicyviolation',e=>window.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));
@@ -210,4 +211,11 @@ test('V3 stake targets the new vault and confirms an existing position lock rese
  }finally{await f.close();}});
 test('mature reward claim targets the selected vault without approving tokens',async()=>{
  for(const path of ['/','/legacy/']){const f=await fixture({path,mature:true,rewards:true});try{await f.connect();await f.page.click('#claimRewardsBtn');await expect.poll(()=>f.state.sent.length).toBe(1);const tx=f.state.sent[0];assert.equal(abi.parseTransaction({data:tx.data}).name,'getReward');assert.equal(tx.to.toLowerCase(),path==='/'?CONFIG.VAULT_ADDRESS.toLowerCase():'0x01b568ebcfb8c6db2cf1c5f70c9b105f4187d92f');}finally{await f.close();}}
+});
+
+test('connected wallet may reject eth_call while independent Base reads show the stake',async()=>{
+ const f=await fixture({walletReadFail:true});try{await f.connect();await expect(f.page.locator('#userStakedDisplay')).toHaveText('1,000');await expect(f.page.locator('#accountReadStatus')).toContainText('updated');assert.equal(f.state.sent.length,0);}finally{await f.close();}
+});
+test('failed public balance reads show unavailable, disable actions, and recover on refresh',async()=>{
+ const f=await fixture();try{await f.connect();f.state.publicReadFail=true;await f.page.click('#refreshBalances');await expect(f.page.locator('#userStakedDisplay')).toHaveText('Unavailable',{timeout:20000});await expect(f.page.locator('#stakeActionBtn')).toBeDisabled();await expect(f.page.locator('#claimRewardsBtn')).toBeDisabled();f.state.publicReadFail=false;await f.page.click('#refreshBalances');await expect(f.page.locator('#userStakedDisplay')).toHaveText('1,000',{timeout:20000});assert.equal(f.state.sent.length,0);}finally{await f.close();}
 });
