@@ -4,7 +4,7 @@ import {authenticateV3Plan} from '../v3-deployment/validate.mjs';
 import {DeploymentSession,hex} from '../deployment/engine.mjs';
 export const build=JSON.parse(readFileSync('v3-deployment/build.json'));
 const A=JSON.parse(readFileSync('build/all.json'));
-export const plan=createV3Plan(build.config,A,'0xa741dAd09fFF5de643283142eD339b9F0b52b146',206,build.minimum,build.reviewedLimits);
+export const plan=createV3Plan(build.config,A,'0x1111111111111111111111111111111111111111',7,build.minimum,build.reviewedLimits);
 const payload=authenticateV3Plan(plan,build);
 const blockHash='0x'+'a'.repeat(64),other='0x'+'b'.repeat(40);
 export function fixture(count=5){
