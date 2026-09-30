@@ -6,7 +6,9 @@
   "description": "$STAKED dual-reward staking vault + fee distributor on Base",
   "scripts": {
     "compile": "node scripts/compile.mjs",
-    "test": "node scripts/compile.mjs && node test/vault.test.mjs"
+    "test": "node scripts/compile.mjs && node test/vault.test.mjs",
+    "build:v3-page": "node scripts/compile.mjs && node scripts/build-v3-page.mjs",
+    "test:v3-page": "node --test test/v3-page.test.mjs test/v3-page-browser.test.mjs"
   },
   "devDependencies": {
     "@ethereumjs/block": "5.3.0",
@@ -14,6 +16,8 @@
     "@ethereumjs/util": "9.1.0",
     "@ethereumjs/vm": "8.1.1",
     "solc": "0.8.24",
-    "viem": "2.21.0"
+    "viem": "2.21.0",
+    "esbuild": "0.28.2",
+    "@playwright/test": "1.58.2"
   }
 }

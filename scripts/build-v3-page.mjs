@@ -1,0 +1,18 @@
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {build as bundle} from 'esbuild';
+const A=JSON.parse(readFileSync('build/all.json'));
+const config={...JSON.parse(readFileSync('config/base.json')),...JSON.parse(readFileSync('config/v3-migration.json'))};
+const sourceCommit='19210c9d613665a0fcb1615a4e41436fdf2f90c1';
+const names=['StakedVaultV3','StakedDistributorV3','StakedRewardRelay','StakedTwapKeeperV3','StakedFeeCollector'];
+const reviewedLimits={maxBnkrPerSwap:'120000000000000000000000',maxBnkrPer24Hours:'240000000000000000000000',minLiquidityBnkrWeth:'1000000000000000000000000',minLiquidityWethUsdc:'600000000000000000',minInterval:'3600',slippageBps:'50',maxTickDeviation:'100',maxInputReserveBps:'10'};
+mkdirSync('v3-deployment',{recursive:true});
+const release={sourceCommit,config,minimum:'60000000000000000000000',reviewedLimits,artifacts:Object.fromEntries(names.map(n=>[n,A[n]]))};
+const canonical=JSON.stringify(release,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a<b?-1:a>b?1:0)):v);
+if(createHash('sha256').update(canonical).digest('hex')!==readFileSync('v3-deployment/reviewed-build.sha256','utf8').trim())throw new Error('Artifacts or protocol settings differ from the reviewed release. Stop and review the change.');
+writeFileSync('v3-deployment/build.json',JSON.stringify(release)+'\n');
+await bundle({entryPoints:['v3-deployment/app.mjs'],bundle:true,format:'esm',platform:'browser',outfile:'v3-deployment/app.bundle.js',minify:true,legalComments:'eof'});
+const integrity='sha384-'+createHash('sha384').update(readFileSync('v3-deployment/app.bundle.js')).digest('base64');
+const template=readFileSync('v3-deployment/template.html','utf8');
+writeFileSync('v3-deployment/index.html',template.replace('BUNDLE_INTEGRITY',integrity));
+console.log('Built local-only V3 deployment page; no plan, snapshot or wallet nonce embedded.');

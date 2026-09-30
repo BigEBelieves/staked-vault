@@ -14,10 +14,10 @@ export function checkRuntime(code,artifact) {
   requireThat(mask(code)===mask(artifact.code),'Deployed code does not match this build. Stop.');
 }
 export class DeploymentSession {
-  constructor(provider,payload,storage,key) {
+  constructor(provider,payload,storage,key,maxDeployments=4) {
     this.provider=provider;this.payload=payload;this.storage=storage;this.key=key;this.inFlight=false;
     this.count=payload.plan.deployments.length;
-    requireThat(this.count>0&&this.count<=4&&payload.verification.length===this.count,'Invalid deployment count.');
+    requireThat([4,5].includes(maxDeployments)&&this.count>0&&this.count<=maxDeployments&&payload.verification.length===this.count,'Invalid deployment count.');
     this.load();
   }
   rpc(method,params=[]) {return this.provider.request({method,params});}
