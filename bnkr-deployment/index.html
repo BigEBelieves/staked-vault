@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>STAKED · BNKR staking deployment</title><link rel="stylesheet" href="style.css"><script type="module" src="app.mjs"></script></head>
+<body><main>
+<header><a href="https://stakedvault.app">STAKED</a><span>BASE MAINNET · DEPLOYMENT ONLY</span></header>
+<h1>Deploy the BNKR staking adapter.</h1>
+<p class="lead">After review, approve one contract creation in Rabby. Your Safe controls the adapter. It starts paused with no operator or spending limits.</p>
+<aside><strong>Code cannot be patched after deployment.</strong> A code fix may require replacement contracts and new Safe transactions. Lost funds may be unrecoverable. This is a review candidate. Confirm the reviewed revision before approving deployment.</aside>
+<section class="identity"><div><label>DEPLOYMENT WALLET</label><code id="wallet">Loading…</code></div><div><label>CONTROLLING SAFE</label><code id="safe">Loading…</code></div></section>
+<p>This transaction sends <strong>0 ETH value</strong> and spend network gas. Fee rights, existing vault settings and automations are not changed by this page. If this wallet’s nonce changes, regenerate the deployment package.</p>
+<div class="toolbar"><button id="connect" disabled>Connect Rabby</button><button id="base" class="secondary" disabled>Switch to Base</button><button id="refresh" class="secondary" disabled>Check progress</button><button id="download" class="secondary" disabled>Download receipts</button></div>
+<div id="status" role="status" aria-live="polite">Loading the verified deployment plan…</div>
+<ol id="steps"></ol>
+<section id="recovery" hidden><h2>Check an uncertain transaction</h2><p>A wallet or network error can happen after submission. Copy the transaction hash from Rabby or BaseScan, then verify it here. Do not send a replacement blindly.</p><label for="hash">Base transaction hash</label><input id="hash" placeholder="0x…" autocomplete="off"><button id="recover">Verify transaction</button></section>
+<footer><a id="source" target="_blank" rel="noopener noreferrer">Review the exact source</a><span>Signing takes place inside your Rabby wallet. This page never asks for a seed phrase or private key.</span></footer>
+</main></body></html>

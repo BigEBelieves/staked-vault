@@ -16,3 +16,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:bnkr
+      - run: node --test test/bnkr-deployment-page.test.mjs
+      - run: npx playwright install --with-deps chromium
+      - run: node --test test/bnkr-deployment-browser.test.mjs

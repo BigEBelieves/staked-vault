@@ -73,3 +73,7 @@ Run existing collection and guarded conversion as before. Then verify chain, ada
 Pause new adapter deposits immediately. Existing USDC conversion and fee collection may continue; BNKR for staking accumulates idle in the paused adapter. Safe can return idle principal and request unstaking without waiting for an administrative timelock; Bankr still enforces its 48-hour cooldown. Withdraw mature principal to Safe. Claim/relay outstanding rewards separately.
 
 For destination rollback, schedule `distributor.setBnkrStakingWallet(Safe)`, wait 48 hours, execute and verify. Disable the adapter's relay permission only when necessary; otherwise harvest remaining earned BNKR after exiting. Existing pending yield must be relayed, not rescued as principal. A replacement adapter requires a new reviewed deployment and delayed routing change.
+
+## Prepared review package
+
+See `review/BNKR-STAKING-REVIEW.md` for the implementation review and exact CI evidence. `review/bnkr-unsigned/` contains unsigned creation/scheduling/activation data prepared for Rabby nonce 217, with a successful Base creation simulation. `bnkr-deployment/` contains a one-contract signing page, not yet hosted or used. Contract code remains pinned to revision `d16ecaedab1149971f834fcb21623ed03f1fc0bd`. Revalidate the nonce and state before any use.
