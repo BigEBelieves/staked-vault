@@ -1,8 +1,9 @@
+import {DeploymentError} from '../deployment/engine.mjs';
 import {encodeDeployData,encodeFunctionData,encodeFunctionResult,getAddress,getContractAddress} from 'viem';
 const ZERO='0x'+'0'.repeat(40);
 const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))):x);
 const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.toLowerCase()===b.toLowerCase();
-const requireThat=(ok,message)=>{if(!ok)throw new Error(message);};
+const requireThat=(ok,message)=>{if(!ok)throw new DeploymentError(message);};
 export function authenticateV3Plan(p,build){
  const {config:C,artifacts:A,reviewedLimits:L,minimum}=build;
  requireThat(p?.version===3&&p.chainId===8453,'Choose the current version-3 Base deployment plan.');

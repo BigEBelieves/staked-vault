@@ -1,7 +1,8 @@
 // Browser-side deployment only. Every send requires an explicit user click and wallet approval.
+export class DeploymentError extends Error {}
 export const hex = value => '0x'+BigInt(value).toString(16);
 const same = (a,b) => typeof a==='string' && typeof b==='string' && a.toLowerCase()===b.toLowerCase();
-const requireThat = (condition,message) => { if(!condition) throw new Error(message); };
+const requireThat = (condition,message) => { if(!condition) throw new DeploymentError(message); };
 const isHash = value => /^0x[0-9a-f]{64}$/i.test(value??'');
 const ZERO_CODE = value => !value || value==='0x';
 export function checkRuntime(code,artifact) {

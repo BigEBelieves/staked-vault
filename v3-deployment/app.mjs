@@ -1,6 +1,6 @@
 import build from './build.json';
 import {authenticateV3Plan} from './validate.mjs';
-import {DeploymentSession} from '../deployment/engine.mjs';
+import {DeploymentSession,DeploymentError} from '../deployment/engine.mjs';
 const $=id=>document.getElementById(id),providers=[];
 let payload,session,provider,status,busy=false,fingerprint;
 window.addEventListener('eip6963:announceProvider',e=>{if(e.detail?.info?.rdns==='io.rabby'&&!providers.includes(e.detail.provider))providers.push(e.detail.provider);});
@@ -27,8 +27,8 @@ async function run(fn){if(busy)return;busy=true;controls();try{await fn();}catch
  status=null;
  if(session){try{status=await session.inspect();}catch{}}
  // RPC errors may contain endpoints and payloads; display only our known app errors.
- const known=/^(Choose the current|Invalid deployment|Safe, batch|Predicted addresses|Creation transactions|Select Base|Select the deployment|This account now|The wallet nonce|Unexpected deployed|Receipt does not|Deployed code|Insufficient ETH|Unexpected deployment gas|Another tab|Open this page|Use a current|Enter the complete|Saved |Submission |Complete or recover|File is too large|Import a JSON|Staked\w+:|Staked\w+ reverted)/;
- message(Number(e.code)===4001?'Request declined in Rabby. No retry was sent.':known.test(e.message??'')?e.message:'The check or wallet request did not complete. Check Rabby and refresh progress; do not resend an uncertain transaction.');
+
+ message(Number(e.code)===4001?'Request declined in Rabby. No retry was sent.':e instanceof DeploymentError?e.message:'The check or wallet request did not complete. Check Rabby and refresh progress; do not resend an uncertain transaction.');
  }finally{busy=false;render();controls();}}
 async function refresh(){
  status=await session.inspect();
@@ -39,8 +39,8 @@ async function refresh(){
 }
 $('file').onchange=()=>run(async()=>{
  payload=null;status=null;
- const file=$('file').files[0];if(!file)return;if(file.size>600000)throw new Error('File is too large. Choose deployment-plan.json.');
- let p;try{p=JSON.parse(await file.text());}catch{throw new Error('Import a JSON deployment plan.');}
+ const file=$('file').files[0];if(!file)return;if(file.size>600000)throw new DeploymentError('File is too large. Choose deployment-plan.json.');
+ let p;try{p=JSON.parse(await file.text());}catch{throw new DeploymentError('Import a JSON deployment plan.');}
  payload=authenticateV3Plan(p,build);
  // Stable per-account/nonce key shared across different plan file formatting.
  fingerprint=payload.plan.deployer.toLowerCase()+':'+payload.plan.firstNonce;
@@ -50,7 +50,7 @@ $('file').onchange=()=>run(async()=>{
 });
 $('connect').onclick=()=>run(async()=>{
  provider=providers[0]??(window.ethereum?.isRabby?window.ethereum:window.ethereum?.providers?.find(p=>p.isRabby));
- if(!provider)throw new Error('Open this page in the browser with the Rabby extension.');
+ if(!provider)throw new DeploymentError('Open this page in the browser with the Rabby extension.');
  await provider.request({method:'eth_requestAccounts'});
  session=new DeploymentSession(provider,payload,localStorage,'staked-v3-deployment:'+fingerprint,5);
  const changed=()=>{status=null;message('Wallet or network changed. Check progress before continuing.');controls();};
@@ -60,9 +60,9 @@ $('connect').onclick=()=>run(async()=>{
 $('base').onclick=()=>run(async()=>{await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x2105'}]});await refresh();});
 $('refresh').onclick=()=>run(refresh);
 $('deploy').onclick=()=>run(async()=>{
- if(!navigator.locks)throw new Error('Use a current Chromium browser for deployment locking.');
+ if(!navigator.locks)throw new DeploymentError('Use a current Chromium browser for deployment locking.');
  await navigator.locks.request('staked-v3-deployment:'+fingerprint,{ifAvailable:true},async lock=>{
-  if(!lock)throw new Error('Another tab is preparing this deployment.');
+  if(!lock)throw new DeploymentError('Another tab is preparing this deployment.');
   message('Checking nonce, constructor simulation and gas before opening Rabby…');await session.sendNext();await refresh();
  });
 });
