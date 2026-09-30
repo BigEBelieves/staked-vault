@@ -29,13 +29,17 @@ await tx(dist,A.StakedDistributorV3.abi,'scheduleConfiguration',[encodeFunctionD
 await tx(relay,A.StakedRewardRelay.abi,'setYieldSource',[helper,true]);await warp(172800);
 await tx(helper,abi,'setPolicy',policy);await tx(dist,A.StakedDistributorV3.abi,'setBnkrStakingWallet',[helper]);await tx(helper,abi,'setPaused',[false]);
 check((await read(dist,A.StakedDistributorV3.abi,'bnkrStakingWallet')).toLowerCase()===helper.toLowerCase(),'delayed destination change uses existing distributor');
-check(await bal(safe)>=20n*min,'Safe owns sufficient fee-derived BNKR in fork');
+check(await bal(safe)>=20n*min,'Safe owns sufficient BNKR for local rehearsal');
 const queueBefore=await read(dist,A.StakedDistributorV3.abi,'pendingSwapBnkr');
 await tx(bnkr,erc,'approve',[dist,20n*min]);await tx(dist,A.StakedDistributorV3.abi,'depositAndDistribute',[0n,20n*min]);
 check(await bal(helper)===10n*min,'real distributor sends 50% BNKR to helper');
 check(await read(dist,A.StakedDistributorV3.abi,'pendingSwapBnkr')===queueBefore+10n*min,'USDC queue retains the other 50%');
 const cfg={safe,operator,bnkr,staking:bankr,relay,vault,distributor:dist,stakingCodeHash:keccak256(code),proposedMaxStakePerDay:'20',proposedMaxPrincipal:'40'};
 const stakePlan=await prepareBankrYieldAction(p,cfg,A,helper,'stake');check(!stakePlan.skipped,'planner prepares stake with live fork state');await revalidateBankrYieldAction(p,cfg,A,stakePlan);
+await assert.rejects(prepareBankrYieldAction(p,{...cfg,operator:actor},A,helper,'stake'),/operator mismatch/);check(true,'planner rejects wrong operator');
+await assert.rejects(prepareBankrYieldAction(p,{...cfg,proposedMaxPrincipal:'41'},A,helper,'stake'),/Exposure policy changed/);check(true,'planner rejects changed exposure policy');
+await assert.rejects(revalidateBankrYieldAction(p,cfg,A,{...stakePlan,timestamp:stakePlan.timestamp-61n}),/Plan stale/);check(true,'planner rejects stale action');
+await assert.rejects(revalidateBankrYieldAction(p,cfg,A,{...stakePlan,data:'0x'}),/data changed/);check(true,'planner rejects altered calldata');
 await tx(helper,abi,'stakeFees',[10n*min],operator);
 check(await read(bankr,bAbi,'stakeOf',[helper])===10n*min,'real Bankr stake succeeds from contract');
 check(await read(bnkr,erc,'allowance',[helper,bankr])===0n,'exact stake allowance removed');

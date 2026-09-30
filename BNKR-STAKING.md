@@ -43,7 +43,7 @@ ANVIL_BIN=/path/to/anvil BASE_FORK_BLOCK=52009577 npm run test:bnkr:fork
 
 Unit tests cover actual V3 vault/relay reward delivery and claims, hostile return values, failed relay recovery, cleared approvals, withdrawal cooldowns, access controls, pause/restart, daily intervals and aggregate exposure including cooling. Fork tests require a loopback Anvil, pin the Base block and code hash, use the real deployed staking/distributor/relay/vault, and locally impersonate Safe authority. They do not demonstrate real Safe signatures or live automation. Read `build/bnkr-fork-report.json` only after a successful run; absence means fork validation is incomplete.
 
-Validation so far: compiler solc 0.8.24 and 30 unit checks pass. The first local Base rehearsal timed out fetching upstream state; a retry is in progress. Do not treat the fork or planner as validated until a successful report is attached.
+Validation completed September 30, 2026: solc 0.8.24 compilation and all 30 unit checks pass. The local Base fork at block 52009577 passes 22 checks, including real Bankr stake/harvest, existing relay/vault reward delivery, Safe-only cooldown recovery, delayed routing rollback, and planner rejection of wrong operator, changed policy, stale plans and altered calldata. Evidence is in `review/bnkr-staking-validation.json`. The first cold-cache attempt timed out; the completed run used cached, pinned upstream reads. This is a local rehearsal, not a live deployment or Safe signature test. GitHub staking and public-app CI passed the initial implementation revision; check the PR checks for the latest revision.
 
 ## Deployment and activation (after review)
 
