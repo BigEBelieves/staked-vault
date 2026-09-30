@@ -114,6 +114,8 @@ console.log('[migration] fund nonzero reward fixtures through normal token trans
 const quoterAbi=parseAbi(['function quoteExactInput(bytes,uint256) returns(uint256,uint160[],uint32[],uint256)']);
 await send({...tx(C.weth,parseAbi(['function deposit() payable']),'deposit'),value:E18/2n});
 async function buy(token,fee,amount){
+ const available=await balance(C.weth,actor);
+ if(available<amount)await send({...tx(C.weth,parseAbi(['function deposit() payable']),'deposit'),value:amount-available});
  const path=encodePacked(['address','uint24','address'],[C.weth,fee,token]);
  const quote=(await pc.simulateContract({address:C.v3Quoter,abi:quoterAbi,functionName:'quoteExactInput',args:[path,amount]})).result[0];
  await write(C.weth,tokenAbi,'approve',[C.v3Router,amount]);
@@ -141,26 +143,13 @@ check(await allowance(C.staked,C.bankr,H.vault)===0n,'exact re-stake allowance c
 check(await call('StakedVaultV3',H.vault,'lockEnd',[C.bankr])>originalLock,'re-stake explicitly starts a new seven-day lock');
 await deny(tx(H.vault,abi('StakedVaultV3'),'withdraw',[1n]),C.bankr,'locked','ordinary V3 withdrawal cannot trigger a locked penalty');
 
-console.log('[migration] atomic fee cutover; old claims remain accessible');
-const cutover=await prepareV3Stage(pc,C,A,plan,hashes,'cutover');
-await safeBatch(cutover.batch.transactions,'generated cutover executes as one real Safe transaction');
-check(await call('StakedTwapKeeper',C.oldKeeper,'paused')&&same(await call('StakedTwapKeeper',C.oldKeeper,'operator'),ZERO),'old operator removed and old keeper paused');
-check(!await call('StakedTwapKeeperV3',H.keeper,'paused')&&same(await call('StakedTwapKeeperV3',H.keeper,'operator'),C.bankr),'new keeper is the only enabled conversion operator path');
-check(await read(C.initializer,feeAbi,'getShares',[C.poolId,H.collector])===950000000000000000n,'new collector owns exactly 95% after cutover');
-check(await call('StakedDistributor',C.distributor,'pendingSwapBnkr')>=snapshot.distributor.pendingSwapBnkr,'old protected queue remains accounted for');
-check(await call('StakedVault',C.vault,'buybackReserve')===oldReserve,'old buyback reserve not swept');
-await assert.rejects(prepareV3Stage(pc,C,A,plan,hashes,'cutover'));check(true,'completed cutover cannot be prepared again');
-const rewardWalletBefore={usdc:await balance(C.usdc,C.bankr),bnkr:await balance(C.bnkr,C.bankr)};
-await write(C.vault,abi('StakedVault'),'getReward',[],C.bankr);
-for(const[t,amount]of Object.entries(earnedBefore))check(await balance(C[t],C.bankr)===rewardWalletBefore[t]+amount,'old '+t+' rewards can still be claimed after fee cutover');
-report.observations.claimPreservation={earnedBefore,claimedAfterCutover:earnedBefore,oldReserve,oldQueueAfterCutover:await call('StakedDistributor',C.distributor,'pendingSwapBnkr'),newLock:await call('StakedVaultV3',H.vault,'lockEnd',[C.bankr])};
-
-console.log('[migration] real pools, unchanged floors, bounded queue with late dust');
+const math=(await send({data:A.TwapMathHarness.bytecode})).contractAddress;
+async function refreshPools(){
 // Uniswap V3 writes a swap observation only when its tick changes. A dust swap
 // can leave the observation days old after the lock/reward time jumps above.
 // Use the existing math harness only for exact tick arithmetic, then make a
 // normal, quoted WETH swap across one tick and verify the actual observation.
-const math=(await send({data:A.TwapMathHarness.bytecode})).contractAddress;
+
 const ceil=(n,d)=>(n+d-1n)/d,Q96=1n<<96n;
 for(const [token,fee,poolGetter]of[[C.bnkr,10000,'poolBnkrWeth'],[C.usdc,500,'poolWethUsdc']]){
  const pool=await call('StakedTwapKeeperV3',H.keeper,poolGetter);
@@ -178,6 +167,39 @@ for(const [token,fee,poolGetter]of[[C.bnkr,10000,'poolBnkrWeth'],[C.usdc,500,'po
  check(after[1]!==slot[1]&&Math.abs(Number(after[1])-Number(slot[1]))<=3,'normal refresh swap moves the real pool by at most three ticks');
  check(observation[3]&&observation[0]>oldObservation[0]&&(await pc.getBlock()).timestamp-BigInt(observation[0])<=1800n,'real pool records a fresh initialized oracle observation');
 }
+}
+console.log('[migration] real legacy spending immediately before fee cutover');
+await refreshPools();
+const legacyInput=BigInt(plan.reviewedLimits.maxBnkrPerSwap),legacyQueue=await call('StakedDistributor',C.distributor,'pendingSwapBnkr');
+check(legacyQueue<legacyInput,'legacy queue can be topped up to the reviewed cap for the fork fixture');
+const legacyFunding=2n*(legacyInput-legacyQueue);
+if(await balance(C.bnkr,actor)<legacyFunding+4n*legacyInput)await buy(C.bnkr,10000,E18/2n);
+await write(C.bnkr,tokenAbi,'transfer',[C.distributor,legacyFunding]);await write(C.distributor,abi('StakedDistributor'),'distribute',[],outsider);
+check(await call('StakedDistributor',C.distributor,'pendingSwapBnkr')===legacyInput,'legacy fixture uses the actual whole-queue swap interface');
+const legacyPath=await call('StakedDistributor',C.distributor,'swapPath');
+const legacyQuote=(await pc.simulateContract({address:C.v3Quoter,abi:quoterAbi,functionName:'quoteExactInput',args:[legacyPath,legacyInput]})).result[0]*995n/1000n;
+const legacyFloor=await call('StakedTwapKeeper',C.oldKeeper,'minimumUsdc',[legacyInput]);
+await write(C.oldKeeper,abi('StakedTwapKeeper'),'swapAndNotify',[legacyInput,legacyQuote>legacyFloor?legacyQuote:legacyFloor,Number((await pc.getBlock()).timestamp+60n),await call('StakedTwapKeeper',C.oldKeeper,'nonce')],C.bankr);
+check(await call('StakedTwapKeeper',C.oldKeeper,'spentLast24Hours')===legacyInput,'real legacy swap consumes budget immediately before cutover');
+const oldQueueAtCutover=await call('StakedDistributor',C.distributor,'pendingSwapBnkr');
+console.log('[migration] atomic fee cutover; old claims remain accessible');
+const cutover=await prepareV3Stage(pc,C,A,plan,hashes,'cutover');
+await safeBatch(cutover.batch.transactions,'generated cutover executes as one real Safe transaction');
+check(await call('StakedTwapKeeper',C.oldKeeper,'paused')&&same(await call('StakedTwapKeeper',C.oldKeeper,'operator'),ZERO),'old operator removed and old keeper paused');
+check(!await call('StakedTwapKeeperV3',H.keeper,'paused')&&same(await call('StakedTwapKeeperV3',H.keeper,'operator'),C.bankr),'new keeper is the only enabled conversion operator path');
+check(await read(C.initializer,feeAbi,'getShares',[C.poolId,H.collector])===950000000000000000n,'new collector owns exactly 95% after cutover');
+check(await call('StakedDistributor',C.distributor,'pendingSwapBnkr')===oldQueueAtCutover,'old protected queue remains accounted for');
+check(await call('StakedTwapKeeperV3',H.keeper,'spentLast24Hours')===legacyInput,'cutover preserves real legacy rolling spend');
+check(await call('StakedVault',C.vault,'buybackReserve')===oldReserve,'old buyback reserve not swept');
+await assert.rejects(prepareV3Stage(pc,C,A,plan,hashes,'cutover'));check(true,'completed cutover cannot be prepared again');
+const rewardWalletBefore={usdc:await balance(C.usdc,C.bankr),bnkr:await balance(C.bnkr,C.bankr)};
+await write(C.vault,abi('StakedVault'),'getReward',[],C.bankr);
+for(const[t,amount]of Object.entries(earnedBefore))check(await balance(C[t],C.bankr)===rewardWalletBefore[t]+amount,'old '+t+' rewards can still be claimed after fee cutover');
+report.observations.claimPreservation={earnedBefore,claimedAfterCutover:earnedBefore,oldReserve,oldQueueAfterCutover:await call('StakedDistributor',C.distributor,'pendingSwapBnkr'),newLock:await call('StakedVaultV3',H.vault,'lockEnd',[C.bankr])};
+
+console.log('[migration] real pools, unchanged floors, bounded queue with late dust');
+await warpTo(BigInt(await call('StakedTwapKeeper',C.oldKeeper,'lastExecution'))+BigInt(plan.reviewedLimits.minInterval));
+await refreshPools();
 const minBatch=BigInt(plan.minBnkrBatch),cap=BigInt(plan.reviewedLimits.maxBnkrPerSwap),donation=(cap+minBatch)*2n;
 check(await balance(C.bnkr,actor)>donation,'fork-only donor can fund an over-cap queue');
 await write(C.bnkr,tokenAbi,'transfer',[H.collector,donation]);await write(H.collector,abi('StakedFeeCollector'),'collectAndDistribute',[],C.bankr);
@@ -191,14 +213,22 @@ await send({to:swap.to,data:swap.data},C.bankr);
 const delivered=await balance(C.usdc,H.vault)-before;
 check(delivered>=swap.quotes.minimumUsdc,'real BNKR conversion reaches V3 vault above on-chain and quoted minimums');
 check(await call('StakedDistributorV3',H.distributor,'pendingSwapBnkr')===queueBefore+1n-swap.quotes.bnkrIn,'prepared exact input succeeds after outsider dust; remainder stays queued');
-check(await call('StakedTwapKeeperV3',H.keeper,'spentLast24Hours')===swap.quotes.bnkrIn,'rolling spend equals exact actual input');
+check(await call('StakedTwapKeeperV3',H.keeper,'spentLast24Hours')===legacyInput+swap.quotes.bnkrIn,'rolling spend includes exact legacy and new inputs');
+await deny(tx(H.keeper,abi('StakedTwapKeeperV3'),'swapAndNotify',[cap,1n,Number((await pc.getBlock()).timestamp+60n),await call('StakedTwapKeeperV3',H.keeper,'nonce')]),C.bankr,'spending cap','fresh keeper cannot spend a second full allowance after real cutover');
 for(const[token,who,spender]of[[C.bnkr,H.distributor,C.v3Router],[C.usdc,H.distributor,H.relay],[C.usdc,H.relay,H.vault]])check(await allowance(token,who,spender)===0n,'transient route allowance cleared');
 await deny(tx(H.distributor,abi('StakedDistributorV3'),'swapBatchAndNotify',[minBatch,1n]),C.bankr,'not keeper','Bankr cannot bypass guarded swap floors');
 await deny(tx(H.keeper,abi('StakedTwapKeeperV3'),'setPaused',[false]),C.bankr,'not Safe','operator cannot unpause itself');
 report.observations.swap={queueBefore,bnkrIn:swap.quotes.bnkrIn,minimumUsdc:swap.quotes.minimumUsdc,usdcReceived:delivered,queueAfter:await call('StakedDistributorV3',H.distributor,'pendingSwapBnkr')};
 
+console.log('[migration] supported delayed configuration changes do not block recovery');
+const changes=[tx(H.distributor,abi('StakedDistributorV3'),'setMinBnkrBatch',[minBatch+1n]),tx(H.distributor,abi('StakedDistributorV3'),'setSwapRouter',[C.v3Quoter])];
+await safeBatch(changes.map(change=>tx(H.distributor,abi('StakedDistributorV3'),'scheduleConfiguration',[change.data])),'Safe schedules threshold and route changes');
+await warpTo((await pc.getBlock()).timestamp+172801n);
+await safeBatch(changes,'supported configuration changes execute after the full delay');
+check(await call('StakedDistributorV3',H.distributor,'minBnkrBatch')===minBatch+1n,'batch threshold now differs from deployment');
+await verifyV3Deployments(pc,C,A,plan,hashes);check(true,'deployment identity verification survives legitimate mutable changes');
 console.log('[migration] rollback fee route without moving stakes or consuming old claims');
-const rollback=await prepareV3Stage(pc,C,A,plan,hashes,'rollback');await safeBatch(rollback.batch.transactions,'generated rollback returns fee rights without enabling old trading');
+const rollback=await prepareV3Stage(pc,C,A,plan,hashes,'rollback');check(rollback.batch.transactions.length===4,'recovery does not call the changed distribution route');await safeBatch(rollback.batch.transactions,'generated rollback returns fee rights without enabling old trading');
 check(await call('StakedTwapKeeperV3',H.keeper,'paused')&&same(await call('StakedTwapKeeperV3',H.keeper,'operator'),ZERO),'rollback disables new operator');
 check(await call('StakedTwapKeeper',C.oldKeeper,'paused')&&same(await call('StakedTwapKeeper',C.oldKeeper,'operator'),ZERO),'rollback leaves old trading paused for a fresh decision');
 check(await read(C.initializer,feeAbi,'getShares',[C.poolId,C.oldCollector])===950000000000000000n,'old collector fee share restored');

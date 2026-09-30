@@ -28,5 +28,10 @@ jobs:
         run: node scripts/compile.mjs
       - name: Check public-summary validation and privacy
         run: node --test test/ci-summary.test.mjs
+      - name: Check migration accounting and rollback regressions
+        run: |
+          node test/v3-batches.test.mjs
+          node test/v3-migration-local.test.mjs
+          node --test test/v3-migration-plan.test.mjs test/twap-v3-plan.test.mjs
       - name: Run the local fork and publish only redacted evidence
         run: node scripts/fork/run-ci.mjs

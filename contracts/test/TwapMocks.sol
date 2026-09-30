@@ -60,3 +60,19 @@ contract TwapMathHarness {
     function mulDivUp(uint256 a, uint256 b, uint256 d) external pure returns (uint256) { return StakedFullMath.mulDivRoundingUp(a,b,d); }
     function sqrt(int24 tick) external pure returns (uint160) { return StakedTickMath.getSqrtRatioAtTick(tick); }
 }
+
+// Test-only predecessor with timestamped spending, used for exact boundary cases.
+contract MockTwapPredecessor {
+    address public safe;
+    address public bnkr;
+    bool public paused = true;
+    address public operator;
+    uint48 public lastExecution;
+    uint256 public amount;
+    constructor(address s, address b) { safe = s; bnkr = b; }
+    function record(uint48 t, uint256 a) external { lastExecution = t; amount = a; }
+    function setActive(bool active) external { paused = !active; operator = active ? msg.sender : address(0); }
+    function spentLast24Hours() external view returns (uint256) {
+        return uint256(lastExecution) + 1 days > block.timestamp ? amount : 0;
+    }
+}

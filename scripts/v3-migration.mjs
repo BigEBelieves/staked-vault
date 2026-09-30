@@ -30,10 +30,10 @@ export function createV3Plan(C,A,deployer,firstNonce,minBnkrBatch,reviewedLimits
   [C.staked,C.usdc,C.bnkr,C.safe,H.relay],
   [C.staked,C.bnkr,C.usdc,C.weth,C.v3Router,H.relay,C.safe,minimum,H.keeper],
   [C.safe,H.vault,H.distributor,C.usdc,C.bnkr],
-  [C.safe,{distributor:H.distributor,relay:H.relay,bnkr:C.bnkr,weth:C.weth,usdc:C.usdc,router:C.v3Router,factory:C.v3Factory}],
+  [C.safe,{distributor:H.distributor,relay:H.relay,bnkr:C.bnkr,weth:C.weth,usdc:C.usdc,router:C.v3Router,factory:C.v3Factory,predecessor:C.oldKeeper}],
   [C.safe,C.initializer,C.poolId,C.staked,C.bnkr,H.distributor]
  ];
- return {version:2,chainId:8453,mode:'UNSIGNED proposed direct CREATE; addresses are predictions, not deployments',scope:'distribution-only V3; constructor wiring; future protected changes delayed 48 hours; buybacks disabled; no user assets moved',
+ return {version:3,chainId:8453,mode:'UNSIGNED proposed direct CREATE; addresses are predictions, not deployments',scope:'distribution-only V3; constructor wiring; future protected changes delayed 48 hours; buybacks disabled; no user assets moved',
   safe:getAddress(C.safe),deployer,firstNonce:n.toString(),minBnkrBatch:minimum.toString(),reviewedLimits:L,addresses:H,
   deployments:names.map((name,i)=>({name,address:H[keys[i]],from:deployer,nonce:Number(n+BigInt(i)),value:'0',chainId:8453,
    data:encodeDeployData({abi:A[name].abi,bytecode:A[name].bytecode,args:args[i]})}))};
@@ -94,6 +94,8 @@ export async function snapshotMigration(client,C,A,blockNumber) {
   custodyNote:'Read-only accounting snapshot. This snapshot authorizes no asset transfer.'};
 }
 
+// Verify creation provenance, exact runtime and immutable bindings only.
+// Mutable operational settings are checked separately when preparing cutover.
 export async function verifyV3Deployments(client,C,A,plan,hashes) {
  validateV3Plan(C,A,plan);eq(await client.getChainId(),8453,'Base only');
  assert(Array.isArray(hashes)&&hashes.length===5&&new Set(hashes).size===5,'Five distinct deployment hashes required');
@@ -108,10 +110,10 @@ export async function verifyV3Deployments(client,C,A,plan,hashes) {
  }
  const H=plan.addresses;
  for(const[name,address,values]of[
-  ['StakedVaultV3',H.vault,{owner:C.safe,pendingOwner:ZERO,stakedToken:C.staked,bnkr:C.bnkr,usdc:C.usdc,distributor:H.relay,keeper:ZERO,buybackExecutor:ZERO,CONFIGURATION_DELAY:172800n}],
-  ['StakedDistributorV3',H.distributor,{owner:C.safe,pendingOwner:ZERO,stakedToken:C.staked,bnkr:C.bnkr,usdc:C.usdc,weth:C.weth,swapRouter:C.v3Router,vault:H.relay,keeper:H.keeper,liquidityWallet:C.safe,bnkrStakingWallet:C.safe,bnkrWethFee:10000,wethUsdcFee:500,minBnkrBatch:BigInt(plan.minBnkrBatch),batchSwapVersion:1n,CONFIGURATION_DELAY:172800n}],
+  ['StakedVaultV3',H.vault,{stakedToken:C.staked,bnkr:C.bnkr,usdc:C.usdc,CONFIGURATION_DELAY:172800n}],
+  ['StakedDistributorV3',H.distributor,{stakedToken:C.staked,bnkr:C.bnkr,usdc:C.usdc,weth:C.weth,batchSwapVersion:1n,CONFIGURATION_DELAY:172800n}],
   ['StakedRewardRelay',H.relay,{safe:C.safe,vault:H.vault,distributor:H.distributor,usdc:C.usdc,bnkr:C.bnkr}],
-  ['StakedTwapKeeperV3',H.keeper,{safe:C.safe,distributor:H.distributor,relay:H.relay,bnkr:C.bnkr,weth:C.weth,usdc:C.usdc,router:C.v3Router,factory:C.v3Factory}],
+  ['StakedTwapKeeperV3',H.keeper,{safe:C.safe,distributor:H.distributor,relay:H.relay,bnkr:C.bnkr,weth:C.weth,usdc:C.usdc,router:C.v3Router,factory:C.v3Factory,predecessor:C.oldKeeper}],
   ['StakedFeeCollector',H.collector,{safe:C.safe,initializer:C.initializer,poolId:C.poolId,staked:C.staked,bnkr:C.bnkr,distributor:H.distributor}]
  ])for(const[fn,v]of Object.entries(values))eq(await call(name,address,fn),v,name+'.'+fn);
  eq((await client.getBlock({blockNumber:block.number})).hash,block.hash,'Verification reorg');
@@ -126,25 +128,35 @@ export async function prepareV3Stage(client,C,A,plan,hashes,stage) {
  const add=(name,to,fn,args=[])=>({to,value:'0',data:encodeFunctionData({abi:A[name].abi,functionName:fn,args})});
  const owners=await read(C.safe,safeAbi,'getOwners');eq(owners.length,3,'Three Safe owners required');eq(await read(C.safe,safeAbi,'getThreshold'),2n,'2-of-3 required');
  assert(!owners.some(a=>a.toLowerCase()===C.bankr.toLowerCase()),'Bankr cannot be Safe signer');
- for(const[name,address]of[['StakedVault',C.vault],['StakedDistributor',C.distributor]]){
-  eq(await call(name,address,'owner'),C.safe,'Old owner changed');eq(await call(name,address,'pendingOwner'),ZERO,'Old pending owner');
- }
- eq(await call('StakedDistributor',C.distributor,'keeper'),C.oldKeeper,'Old keeper changed');
- for(const[fn,value]of Object.entries({swapRouter:C.v3Router,liquidityWallet:C.safe,bnkrStakingWallet:C.safe,bnkrWethFee:10000,wethUsdcFee:500}))eq(await call('StakedDistributor',C.distributor,fn),value,'Old route changed: '+fn);
- eq(await call('StakedTwapKeeper',C.oldKeeper,'safe'),C.safe,'Old keeper authority');
- eq(await call('StakedTwapKeeper',C.oldKeeper,'distributor'),C.distributor,'Old keeper route');
- eq(await call('StakedFeeCollector',C.oldCollector,'safe'),C.safe,'Old collector authority');
- eq(await call('StakedFeeCollector',C.oldCollector,'distributor'),C.distributor,'Old collector route');
+ // Recovery needs only authenticated helper identities and fee rights, not
+ // the original mutable vault/distributor configuration or a working swap route.
  for(const[name,address]of[['StakedTwapKeeper',C.oldKeeper],['StakedFeeCollector',C.oldCollector]])assertRuntime(A[name],await client.getBytecode({address,blockNumber:block.number}),name);
- const oldGuard=await call('StakedVault',C.vault,'keeper');
- eq(await call('StakedAutomationGuard',oldGuard,'paused'),true,'Old buybacks must remain paused');eq(await call('StakedAutomationGuard',oldGuard,'operator'),ZERO,'Old buyback operator');
+ eq(await call('StakedTwapKeeper',C.oldKeeper,'safe'),C.safe,'Old keeper authority');
+ for(const[fn,value]of Object.entries({safe:C.safe,initializer:C.initializer,poolId:C.poolId,staked:C.staked,bnkr:C.bnkr,distributor:C.distributor}))eq(await call('StakedFeeCollector',C.oldCollector,fn),value,'Old collector identity: '+fn);
  const feeShare=address=>read(C.initializer,feeAbi,'getShares',[C.poolId,address]);
  eq(await feeShare(OTHER_BENEFICIARY),50000000000000000n,'Other beneficiary changed');eq(await feeShare(C.safe),0n,'Unexpected Safe fee rights');eq(await feeShare(C.bankr),0n,'Unexpected Bankr fee rights');
  eq(await feeShare(C.oldCollector),stage==='rollback'?0n:SHARE,'Old fee rights');eq(await feeShare(H.collector),stage==='rollback'?SHARE:0n,'New fee rights');
  const paused=await call('StakedTwapKeeperV3',H.keeper,'paused');const operator=await call('StakedTwapKeeperV3',H.keeper,'operator');
  let transactions=[];
-  eq(await call('StakedVaultV3',H.vault,'distributor'),H.relay,'Vault relay mismatch');eq(await call('StakedDistributorV3',H.distributor,'vault'),H.relay,'Distributor relay mismatch');eq(await call('StakedDistributorV3',H.distributor,'keeper'),H.keeper,'Distributor keeper mismatch');
   if(stage==='cutover'){
+   for(const[name,address]of[['StakedVault',C.vault],['StakedDistributor',C.distributor]]){
+    eq(await call(name,address,'owner'),C.safe,'Old owner changed');eq(await call(name,address,'pendingOwner'),ZERO,'Old pending owner');
+   }
+   eq(await call('StakedDistributor',C.distributor,'keeper'),C.oldKeeper,'Old keeper changed');
+   for(const[fn,value]of Object.entries({swapRouter:C.v3Router,liquidityWallet:C.safe,bnkrStakingWallet:C.safe,bnkrWethFee:10000,wethUsdcFee:500}))eq(await call('StakedDistributor',C.distributor,fn),value,'Old route changed: '+fn);
+   eq(await call('StakedTwapKeeper',C.oldKeeper,'safe'),C.safe,'Old keeper authority');
+   eq(await call('StakedTwapKeeper',C.oldKeeper,'distributor'),C.distributor,'Old keeper route');
+   eq(await call('StakedFeeCollector',C.oldCollector,'safe'),C.safe,'Old collector authority');
+   eq(await call('StakedFeeCollector',C.oldCollector,'distributor'),C.distributor,'Old collector route');
+   for(const[name,address]of[['StakedTwapKeeper',C.oldKeeper],['StakedFeeCollector',C.oldCollector]])assertRuntime(A[name],await client.getBytecode({address,blockNumber:block.number}),name);
+   const oldGuard=await call('StakedVault',C.vault,'keeper');
+   eq(await call('StakedAutomationGuard',oldGuard,'paused'),true,'Old buybacks must remain paused');eq(await call('StakedAutomationGuard',oldGuard,'operator'),ZERO,'Old buyback operator');
+
+   for(const[name,address,values]of[
+    ['StakedVaultV3',H.vault,{owner:C.safe,pendingOwner:ZERO,distributor:H.relay,keeper:ZERO,buybackExecutor:ZERO}],
+    ['StakedDistributorV3',H.distributor,{owner:C.safe,pendingOwner:ZERO,swapRouter:C.v3Router,vault:H.relay,keeper:H.keeper,liquidityWallet:C.safe,bnkrStakingWallet:C.safe,bnkrWethFee:10000,wethUsdcFee:500,minBnkrBatch:BigInt(plan.minBnkrBatch)}]
+   ])for(const[fn,value]of Object.entries(values))eq(await call(name,address,fn),value,'Initial configuration: '+fn);
+
    eq(paused,true,'New keeper must still be paused');eq(operator,ZERO,'New operator already set');
    assert(await call('StakedVaultV3',H.vault,'totalSupply')>0n,'Require an opted-in V3 stake before redirecting rewards');
    const limits=limitsObject(await call('StakedTwapKeeper',C.oldKeeper,'limits'));
@@ -159,7 +171,7 @@ export async function prepareV3Stage(client,C,A,plan,hashes,stage) {
    eq(await call('StakedTwapKeeper',C.oldKeeper,'paused'),true,'Old trading must remain paused during rollback');
    eq(await call('StakedTwapKeeper',C.oldKeeper,'operator'),ZERO,'Old operator already restored');
    transactions=[add('StakedTwapKeeperV3',H.keeper,'setPaused',[true]),add('StakedTwapKeeperV3',H.keeper,'setOperator',[ZERO]),
-    add('StakedFeeCollector',H.collector,'collectAndDistribute'),add('StakedFeeCollector',H.collector,'returnBeneficiaryToSafe'),
+    add('StakedFeeCollector',H.collector,'returnBeneficiaryToSafe'),
     {to:C.initializer,value:'0',data:encodeFunctionData({abi:feeAbi,functionName:'updateBeneficiary',args:[C.poolId,C.oldCollector]})}];
   }
  const safeNonce=await read(C.safe,safeAbi,'nonce');
@@ -168,6 +180,7 @@ export async function prepareV3Stage(client,C,A,plan,hashes,stage) {
  batch.meta.checksum=safeChecksum(batch);
  eq((await client.getBlock({blockNumber:block.number})).hash,block.hash,'Stage snapshot reorg');
  return {batch,verification:{stage,block:block.number,blockHash:block.hash,safeNonce,initialWiring:'constructor-only',futureConfigurationDelaySeconds:172800,
+  aggregateSpend:await call('StakedTwapKeeperV3',H.keeper,'spentLast24Hours'),effectiveLastExecution:await call('StakedTwapKeeperV3',H.keeper,'effectiveLastExecution'),
   oldQueue:await call('StakedDistributor',C.distributor,'pendingSwapBnkr'),oldSupply:await call('StakedVault',C.vault,'totalSupply'),
   note:'State checks only. Complete Safe batch must be simulated near signing. Old queue/reserves and claims remain in old contracts. External scheduler must be repinned separately.',liveTransactionSent:false}};
 }

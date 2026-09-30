@@ -36,3 +36,27 @@ A successful result covers the simulated fork only. Fresh deployment state,
 actual live receipts, wallet signatures, complete live Safe simulation and
 scheduled-job verification are still separate release requirements. This
 workflow cannot approve or perform a live deployment.
+
+## Migration review follow-up
+
+The V3 keeper now immutably binds the existing keeper. Its rolling spend includes
+both histories, and its execution interval uses the later trade timestamp.
+Unpause and swaps require the predecessor to stay paused with no operator.
+Remaining aggregate budget can be used after the normal interval; no blanket
+24-hour migration wait is introduced. The legacy keeper is non-upgradeable and
+its runtime/identity is checked by the migration planner.
+
+Receipt/runtime/immutable verification is separate from cutover configuration
+checks. Rollback supports legitimate changes such as the delayed batch threshold
+or router update. Its four calls pause/remove the new operator, return beneficiary
+rights and collector-held tokens to the Safe, then restore old collector rights.
+Recovery does not call the distribution route. Existing queues and claims stay
+in their contracts, and both trading paths stay disabled. Restarting old trading
+requires a fresh aggregate-budget decision.
+
+The manifest version is now 3; regenerate and review all earlier unsigned data.
+The regression suite tests exact 24-hour expiry, cross-keeper interval, exhausted
+and partial aggregate budget, reconfiguration, and predecessor reactivation.
+The fork additionally makes a real legacy swap before cutover and exercises
+Safe rollback after supported 48-hour-delayed configuration changes. See the
+Actions run for this exact commit for its results; no live transactions are sent.

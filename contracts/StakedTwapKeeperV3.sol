@@ -5,6 +5,15 @@ import "./StakedFullMath.sol";
 import "./StakedTickMath.sol";
 import {TwapV3Factory, TwapV3Pool, TwapDistributor} from "./StakedTwapKeeper.sol";
 
+interface TwapPredecessor {
+    function safe() external view returns (address);
+    function bnkr() external view returns (address);
+    function paused() external view returns (bool);
+    function operator() external view returns (address);
+    function spentLast24Hours() external view returns (uint256);
+    function lastExecution() external view returns (uint48);
+}
+
 interface TwapBatchDistributor is TwapDistributor {
     function batchSwapVersion() external view returns (uint256);
     function swapBatchAndNotify(uint256 amountIn, uint256 minUsdcOut) external returns (uint256);
@@ -23,7 +32,7 @@ contract StakedTwapKeeperV3 is SafeAuthority {
     uint256 private constant DAY = 1 days;
     uint256 private constant MAX_TRADES = 96;
 
-    struct Config { address distributor; address relay; address bnkr; address weth; address usdc; address router; address factory; }
+    struct Config { address distributor; address relay; address bnkr; address weth; address usdc; address router; address factory; address predecessor; }
     struct Limits {
         uint128 maxBnkrPerSwap;
         uint128 maxBnkrPer24Hours;
@@ -37,6 +46,7 @@ contract StakedTwapKeeperV3 is SafeAuthority {
     struct Reading { int24 longTick; int24 shortTick; uint160 sqrtPriceX96; uint128 effectiveLiquidity; }
     struct Trade { uint48 timestamp; uint128 amount; }
 
+    address public immutable predecessor;
     address public immutable distributor;
     address public immutable relay;
     address public immutable bnkr;
@@ -67,6 +77,9 @@ contract StakedTwapKeeperV3 is SafeAuthority {
         require(c.bnkr != c.weth && c.bnkr != c.usdc && c.weth != c.usdc, "duplicate tokens");
         distributor = c.distributor; relay = c.relay; bnkr = c.bnkr; weth = c.weth; usdc = c.usdc;
         router = c.router; factory = c.factory;
+        require(c.predecessor.code.length > 0, "missing predecessor");
+        require(TwapPredecessor(c.predecessor).safe() == safe_ && TwapPredecessor(c.predecessor).bnkr() == c.bnkr, "wrong predecessor");
+        predecessor = c.predecessor;
         poolBnkrWeth = _pool(c.factory, c.bnkr, c.weth, FEE_BNKR_WETH);
         poolWethUsdc = _pool(c.factory, c.weth, c.usdc, FEE_WETH_USDC);
     }
@@ -100,14 +113,22 @@ contract StakedTwapKeeperV3 is SafeAuthority {
         paused = value; nonce++; emit Paused(value);
     }
 
+    /// @notice Aggregate rolling spend, including the immutable legacy keeper.
     function spentLast24Hours() public view returns (uint256 spent) {
+        spent = TwapPredecessor(predecessor).spentLast24Hours();
         for (uint256 i; i < MAX_TRADES; ++i) {
             Trade memory t = history[i];
             if (uint256(t.timestamp) + DAY > block.timestamp) spent += t.amount;
         }
     }
 
+    function effectiveLastExecution() public view returns (uint48) {
+        uint48 previous = TwapPredecessor(predecessor).lastExecution();
+        return previous > lastExecution ? previous : lastExecution;
+    }
+
     function _routeOkay() private view {
+        require(TwapPredecessor(predecessor).paused() && TwapPredecessor(predecessor).operator() == address(0), "predecessor active");
         TwapDistributor d = TwapDistributor(distributor);
         require(d.owner() == safe && d.keeper() == address(this), "authority changed");
         require(d.vault() == relay && d.swapRouter() == router, "route changed");
@@ -215,7 +236,7 @@ contract StakedTwapKeeperV3 is SafeAuthority {
         require(expectedAmount > 0 && expectedAmount <= TwapDistributor(distributor).pendingSwapBnkr(), "insufficient queue");
         require(expectedAmount >= TwapDistributor(distributor).minBnkrBatch(), "below batch threshold");
         require(expectedAmount <= limits.maxBnkrPerSwap && spentLast24Hours() + expectedAmount <= limits.maxBnkrPer24Hours, "spending cap");
-        require(block.timestamp >= uint256(lastExecution) + limits.minInterval, "cooldown");
+        require(block.timestamp >= uint256(effectiveLastExecution()) + limits.minInterval, "cooldown");
         uint256 floor = minimumUsdc(expectedAmount);
         require(keeperMinimum >= floor, "below TWAP floor");
         require(history[nextTrade].amount == 0 || uint256(history[nextTrade].timestamp) + DAY <= block.timestamp, "history full");

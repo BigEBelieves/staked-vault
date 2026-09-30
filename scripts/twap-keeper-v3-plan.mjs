@@ -16,7 +16,7 @@ async function state(client,o,head,requestedAmount) {
   const read = (address,a,functionName,args=[]) => client.readContract({address,abi:a,functionName,args,blockNumber:head.number});
   const k = fn => read(o.keeper,abi,fn);
   const [safe,operator,distributor,paused,nonce,limits,spent,last] = await Promise.all(
-    ['safe','operator','distributor','paused','nonce','limits','spentLast24Hours','lastExecution'].map(k));
+    ['safe','operator','distributor','paused','nonce','limits','spentLast24Hours','effectiveLastExecution'].map(k));
   if (!same(safe,o.safe) || !same(operator,o.operator) || !same(distributor,o.distributor)) throw new Error('Keeper identity changed');
   if (paused) throw new Error('Keeper paused');
   const [queued,threshold,path,version] = await Promise.all(['pendingSwapBnkr','minBnkrBatch','swapPath','batchSwapVersion'].map(fn => read(distributor,A.StakedDistributorV3.abi,fn)));
