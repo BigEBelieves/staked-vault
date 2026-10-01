@@ -1,0 +1,18 @@
+{
+  "chainId": 8453,
+  "safe": "0xb9066550918fa778a4039120eac878230cf8f6FC",
+  "operator": "0x1a3091097126D69a4f955051D4d018c1AE3cdcF8",
+  "bnkr": "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b",
+  "staking": "0x88470240FF0663Faefa68B1D7621b472DdD9584A",
+  "stakingCodeHash": "0xd5aed805076ee0ed5e564daf83ae17fbe099347b87d443db69159571c87e21c3",
+  "relay": "0xf9421C19ff9e6a09b30BdF9183739A232C3F33bF",
+  "vault": "0x6E6c236D5EF18cAF835fAf2bD495ED48e3F8CCc5",
+  "distributor": "0x5E22cC89dA97c5C07F19AE332be62f9Ed41B68d5",
+  "proposedMaxStakePerDay": "120000",
+  "proposedMaxPrincipal": "240000",
+  "status": "DEPLOYED AND VERIFIED; configuration scheduled; awaiting 48-hour delay and activation",
+  "adapter": "0xF495BF917D159942ACC6c926Ab883d5a20cF2A05",
+  "deploymentHash": "0x05f53d042c5c29363ff7d204436635afcfb76300a49abfd992526d572fb4c914",
+  "schedulingHash": "0x9a7361e0cdc4f3e0e60350ce6949a4690823dd02ff8e08c5e61409f8b6781bda",
+  "configurationReadyUTC": "2026-10-03T00:00:27Z"
+}

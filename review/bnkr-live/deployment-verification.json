@@ -1,0 +1,66 @@
+{
+  "status": "DEPLOYED, PAUSED; SCHEDULING NOT EXECUTED",
+  "deploymentHash": "0x05f53d042c5c29363ff7d204436635afcfb76300a49abfd992526d572fb4c914",
+  "adapter": "0xF495BF917D159942ACC6c926Ab883d5a20cF2A05",
+  "chainId": 8453,
+  "deploymentBlock": "52011272",
+  "snapshotBlock": "52011427",
+  "snapshotHash": "0x2a110032fd35a1042dcf70667d311f03a6ca52014d593414adbbcadbee7bb0de",
+  "runtimeHash": "0xadad09e081f85374f147960997d9013cee74e3d7c7dc0736aa81d9f75f26bae8",
+  "checkedGetters": [
+    "adapter.safe",
+    "adapter.bnkr",
+    "adapter.staking",
+    "adapter.relay",
+    "adapter.stakingCodeHash",
+    "adapter.operator",
+    "adapter.paused",
+    "adapter.maxStakePerDay",
+    "adapter.maxPrincipal",
+    "adapter.coolingPrincipal",
+    "adapter.pendingYield",
+    "adapter.lastStake",
+    "adapter.lastHarvest",
+    "adapter.lastRelay",
+    "adapter.totalStaked",
+    "adapter.totalYieldClaimed",
+    "adapter.totalYieldRelayed",
+    "StakedDistributorV3.owner",
+    "StakedDistributorV3.bnkrStakingWallet",
+    "StakedDistributorV3.vault",
+    "StakedVaultV3.owner",
+    "StakedVaultV3.distributor",
+    "StakedRewardRelay.safe",
+    "StakedRewardRelay.vault",
+    "StakedRewardRelay.distributor"
+  ],
+  "safe": {
+    "address": "0xb9066550918fa778a4039120eac878230cf8f6FC",
+    "threshold": "2",
+    "owners": [
+      "0xa741dAd09fFF5de643283142eD339b9F0b52b146",
+      "0x7690f887a6aFe5fc27BD9B4D67C76a83ab44E1a4",
+      "0x52d53D2bb353d63f85655C26163f535EAEaBDb09"
+    ],
+    "nonce": "9"
+  },
+  "schedules": [
+    {
+      "to": "0xF495BF917D159942ACC6c926Ab883d5a20cF2A05",
+      "id": "0x3c9d0ff9ed3f3f9b8516353af665bf6008d6dd4662b5e73e2ffb1735617f799e",
+      "readyAt": "0",
+      "individualEthCall": "passed"
+    },
+    {
+      "to": "0x5E22cC89dA97c5C07F19AE332be62f9Ed41B68d5",
+      "id": "0xc18d054a124b2cf334b46e0837abff78f737a6593a164f2a24d3066604186d53",
+      "readyAt": "0",
+      "individualEthCall": "passed"
+    }
+  ],
+  "limitations": [
+    "Each scheduling call simulated separately from the Safe; simulate the complete batch in Safe before signing.",
+    "48-hour countdown has NOT started.",
+    "No tokens moved or automation changed by this verifier."
+  ]
+}

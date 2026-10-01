@@ -1,0 +1,24 @@
+{
+  "isJobCompleted": true,
+  "verificationId": "63e36e35-dbbe-4775-86c3-73b6d9f345fc",
+  "jobStartTime": "2026-09-30T23:48:36Z",
+  "jobFinishTime": "2026-09-30T23:48:37Z",
+  "compilationTime": "497",
+  "externalVerifications": {
+    "etherscan": {
+      "error": "Max calls per sec rate limit reached (3/sec)"
+    },
+    "blockscout": {
+      "error": "Explorer verification request failed (429): {\"message\":\"Too many requests. Increase limits now at https://dev.blockscout.com\",\"result\":null,\"status\":\"0\"}"
+    }
+  },
+  "contract": {
+    "match": "exact_match",
+    "creationMatch": "exact_match",
+    "runtimeMatch": "exact_match",
+    "chainId": "8453",
+    "address": "0xF495BF917D159942ACC6c926Ab883d5a20cF2A05",
+    "verifiedAt": "2026-09-30T23:48:37Z",
+    "matchId": "54447793"
+  }
+}

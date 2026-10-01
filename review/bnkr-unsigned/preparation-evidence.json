@@ -1,0 +1,19 @@
+{
+  "status": "UNSIGNED; NOT DEPLOYED",
+  "sourceCommit": "d16ecaedab1149971f834fcb21623ed03f1fc0bd",
+  "snapshotBlock": "52010382",
+  "snapshotBlockHash": "0x205cc64ac40616ae7df0a45440eabf12b1865c353d5bea1a858a19da16d5fa5f",
+  "deployer": "0xa741dAd09fFF5de643283142eD339b9F0b52b146",
+  "nonce": 217,
+  "predictedAdapter": "0xF495BF917D159942ACC6c926Ab883d5a20cF2A05",
+  "simulation": "eth_call contract creation returned matching runtime and immutable values",
+  "runtimeHash": "0xadad09e081f85374f147960997d9013cee74e3d7c7dc0736aa81d9f75f26bae8",
+  "creationHash": "0xf7ca1f7f53cae8d5e0a1ed070f4760ef488ac42e2843d286aaf5c4856e1098fc",
+  "chainId": 8453,
+  "limitations": [
+    "No Safe transaction executed or signatures obtained.",
+    "Schedules and activation have not been simulated against a live deployment; the adapter does not exist yet.",
+    "Refresh if nonce or state changes. Gas is estimated by the signing flow, not supplied in the unsigned creation file.",
+    "Code checks and local tests are not an independent audit."
+  ]
+}

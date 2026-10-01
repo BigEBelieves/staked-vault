@@ -1,0 +1,24 @@
+{
+  "mode": "LOCAL FORK ONLY",
+  "forkBlock": "52009577",
+  "checks": 22,
+  "claimed": "7259860061338984",
+  "staking": "0x88470240FF0663Faefa68B1D7621b472DdD9584A",
+  "codeHash": "0xd5aed805076ee0ed5e564daf83ae17fbe099347b87d443db69159571c87e21c3",
+  "limitations": [
+    "Safe impersonated locally; real signatures not tested.",
+    "Native gas balances changed locally. Token balances and external staking code were not patched.",
+    "Future rewards and API availability are not guaranteed."
+  ],
+  "validatedAt": "2026-09-30",
+  "compiler": "0.8.24",
+  "anvil": "1.7.1",
+  "unitChecks": 30,
+  "unitFailures": 0,
+  "liveTransactionsSent": 0,
+  "status": "REVIEW CANDIDATE; NOT DEPLOYED",
+  "commands": [
+    "npm run test:bnkr",
+    "ANVIL_BIN=/path/to/anvil BASE_FORK_BLOCK=52009577 npm run test:bnkr:fork"
+  ]
+}

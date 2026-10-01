@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "createdAt": 1790810292472,
+  "meta": {
+    "name": "BNKR staking: activation ONLY after 48-hour notice",
+    "description": "REVIEW ONLY. Adapter must be deployed and verified; recheck state and simulate before signing. Activation additionally requires mature on-chain schedules.",
+    "createdFromSafeAddress": "0xb9066550918fa778a4039120eac878230cf8f6FC",
+    "createdFromOwnerAddress": "",
+    "checksum": "0x2ddf42cbe6efeb3b640c54838f66b1201d5b59ca6b1de360a2bb5a7a4bdee916"
+  },
+  "transactions": [
+    {
+      "to": "0xF495BF917D159942ACC6c926Ab883d5a20cF2A05",
+      "value": "0",
+      "data": "0x8e33377c0000000000000000000000001a3091097126d69a4f955051d4d018c1ae3cdcf8000000000000000000000000000000000000000000001969368974c05b0000000000000000000000000000000000000000000000000032d26d12e980b6000000"
+    },
+    {
+      "to": "0xf9421C19ff9e6a09b30BdF9183739A232C3F33bF",
+      "value": "0",
+      "data": "0x8e14eaaa000000000000000000000000f495bf917d159942acc6c926ab883d5a20cf2a050000000000000000000000000000000000000000000000000000000000000001"
+    },
+    {
+      "to": "0x5E22cC89dA97c5C07F19AE332be62f9Ed41B68d5",
+      "value": "0",
+      "data": "0xc539c2f2000000000000000000000000f495bf917d159942acc6c926ab883d5a20cf2a05"
+    },
+    {
+      "to": "0xF495BF917D159942ACC6c926Ab883d5a20cF2A05",
+      "value": "0",
+      "data": "0x16c38b3c0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}
