@@ -1,6 +1,6 @@
 # BNKR staking yield integration — review candidate
 
-Status: adapter deployed and verified on Base, still paused and unconfigured. Deployment tx: `0x05f53d042c5c29363ff7d204436635afcfb76300a49abfd992526d572fb4c914`; address: `0xF495BF917D159942ACC6c926Ab883d5a20cF2A05`. Sourcify creation/runtime exact match. Safe scheduling has NOT executed and the 48-hour countdown has NOT started. See `review/bnkr-live/` for current evidence and the verified scheduling batch.
+Status: adapter deployed and verified on Base, still paused and unconfigured. Deployment tx: `0x05f53d042c5c29363ff7d204436635afcfb76300a49abfd992526d572fb4c914`; address: `0xF495BF917D159942ACC6c926Ab883d5a20cF2A05`. Sourcify creation/runtime exact match. Safe scheduling executed in block 52011740 (transaction `0x9a7361e0cdc4f3e0e60350ce6949a4690823dd02ff8e08c5e61409f8b6781bda`). Both configurations become executable at **2026-10-03 00:00:27 UTC / October 2, 8:00:27 PM EDT**. Activation and staking have not occurred. See `review/bnkr-live/` for current evidence and the verified scheduling batch.
 
 ## What this adds
 

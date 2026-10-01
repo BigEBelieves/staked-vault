@@ -10,7 +10,9 @@
   "distributor": "0x5E22cC89dA97c5C07F19AE332be62f9Ed41B68d5",
   "proposedMaxStakePerDay": "120000",
   "proposedMaxPrincipal": "240000",
-  "status": "DEPLOYED AND VERIFIED; PAUSED; scheduling not yet executed",
+  "status": "DEPLOYED AND VERIFIED; configuration scheduled; awaiting 48-hour delay and activation",
   "adapter": "0xF495BF917D159942ACC6c926Ab883d5a20cF2A05",
-  "deploymentHash": "0x05f53d042c5c29363ff7d204436635afcfb76300a49abfd992526d572fb4c914"
+  "deploymentHash": "0x05f53d042c5c29363ff7d204436635afcfb76300a49abfd992526d572fb4c914",
+  "schedulingHash": "0x9a7361e0cdc4f3e0e60350ce6949a4690823dd02ff8e08c5e61409f8b6781bda",
+  "configurationReadyUTC": "2026-10-03T00:00:27Z"
 }
