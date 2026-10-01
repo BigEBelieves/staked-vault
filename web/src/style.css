@@ -832,3 +832,16 @@
 .token-input {min-width:0;width:100%;}
 .card-header,.input-header {flex-wrap:wrap;gap:10px;}
 @media(max-width:480px){.card{padding:16px;}.input-group{padding:12px;}.input-row{flex-wrap:wrap;}.token-input{flex:1 1 100%;}.contract-links{flex-wrap:wrap;}.hero-banner{padding:20px;}.stat-box{padding:12px;}.reward-token-row{flex-wrap:wrap;gap:12px;}}
+
+/* Protocol staking balances stay distinct from personal rewards. */
+.bnkr-protocol { grid-column: 1 / -1; }
+.bnkr-protocol[hidden] { display: none; }
+.bnkr-caption, .bnkr-metrics p, .bnkr-safe p { color: var(--text-muted); font-size: .85rem; line-height: 1.6; }
+.bnkr-status { margin: 14px 0; font-size: .9rem; }
+.bnkr-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.bnkr-metrics h3 { font-size: .9rem; margin: 0 0 8px; }
+.bnkr-metrics strong, .bnkr-safe strong { display: block; font-size: 1.6rem; overflow-wrap: anywhere; }
+.bnkr-safe { margin: 20px 0; padding-top: 16px; border-top: 1px solid var(--border); }
+.bnkr-refresh { display: flex; gap: 12px; justify-content: space-between; align-items: center; color: var(--text-muted); }
+.bnkr-refresh button { padding: 10px 16px; border-radius: 8px; cursor: pointer; background: transparent; color: inherit; border: 1px solid currentColor; }
+@media(max-width:600px) { .bnkr-metrics { grid-template-columns: 1fr; } .bnkr-refresh { flex-wrap: wrap; } }
