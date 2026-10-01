@@ -1,0 +1,8 @@
+{
+  "chainId": 8453,
+  "runtimeSha256": {
+    "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3": "42478fba81b9ab32a3df3ab4a4f8acd67a4528f1d295a0a32924b4eb583fce4d",
+    "0x6e6c236d5ef18caf835faf2bd495ed48e3f8ccc5": "1451d033a400907d1af06737cd23981268020c983025b7d13ca8ce5313dba391"
+  },
+  "provenance": "Previously captured Base runtime from initial-stake-code.json. Vault matches compiled StakedVaultV3 excluding immutable slots; planner verifies token getters. Token clone fingerprint is not a token audit. Fresh reads must match; no fresh RPC evidence was obtainable in this build session."
+}
