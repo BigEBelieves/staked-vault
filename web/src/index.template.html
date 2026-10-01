@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>$STAKED Vault | Dual-Reward Staking on Base</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- LOCAL_ASSETS -->
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="logo-badge">⚡</div>
+      <div>
+        <div class="brand-title">$STAKED VAULT</div>
+        <div class="brand-subtitle">DUAL REAL-YIELD STAKING ON BASE</div>
+      </div>
+    </div>
+    <div class="wallet-section">
+      <div class="network-badge">
+        <span class="network-dot"></span>
+        <span id="networkName">Base</span>
+      </div>
+      <button class="btn btn-primary" id="connectBtn" data-action="ui-1">Connect Wallet</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <nav class="vault-nav" aria-label="Choose vault"><a href="/" id="v3Link">V3 staking</a><a href="/legacy/" id="legacyLink">Existing V2 stakes</a></nav>
+    <section class="vault-notice" aria-live="polite"><strong id="vaultLabel">V3 staking</strong><p id="vaultNotice">New deposits use V3. Existing V2 stakes and reward claims remain in the original vault.</p></section>
+    <section class="vault-notice" id="pendingNotice" hidden><strong>Check your last wallet request</strong><p id="pendingText"></p><label for="recoveryHash">Transaction hash, if available</label><input id="recoveryHash" placeholder="0x…" autocomplete="off"><button class="btn btn-primary" id="checkPending">Check transaction</button></section>
+    <section class="vault-notice"><p id="accountReadStatus" role="status">Connect your wallet to see your position.</p><button class="btn" id="refreshBalances">Refresh balances</button></section>
+    <!-- Hero / Top Protocol Stats -->
+    <div class="hero-banner">
+      <div>
+        <h1 class="hero-title">Stake <span class="gradient-text">$STAKED</span>.<br>Earn USDC & BNKR.</h1>
+        <p class="hero-desc">
+          Eligible trading fees are collected daily. BNKR-to-USDC conversion runs only when batch and price protections pass. Rewards vary and are not guaranteed.
+          Each deposit locks your entire position for 7 days. Early withdrawal burns 20% of the amount withdrawn and forfeits all pending rewards on your position.
+        </p>
+      </div>
+      <div class="stat-badge-grid">
+        <div class="stat-box">
+          <div class="stat-box-label">Total Staked</div>
+          <div class="stat-box-val" id="totalStakedDisplay">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-label">Your Stake</div>
+          <div class="stat-box-val" id="userStakedDisplay">0.00</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-label">USDC Stream</div>
+          <div class="stat-box-val" id="weeklyUsdcDisplay">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-label">Lock</div>
+          <div class="stat-box-val">7 Days</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Grid -->
+    <div class="grid-container">
+
+      <!-- Staking & Unstaking Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Manage Position</span>
+          </div>
+          <div class="tab-pills">
+            <button class="tab-btn active" id="tabStake" data-action="ui-2">Stake</button>
+            <button class="tab-btn" id="tabUnstake" data-action="ui-3">Unstake</button>
+          </div>
+        </div>
+
+        <!-- Lock Status Banner -->
+        <div class="lock-timer-box" id="lockStatusBox">
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">7-Day Lock Countdown</div>
+            <div class="timer-countdown" id="lockCountdown">Connect to view</div>
+          </div>
+          <div class="status-pill" id="lockStatusBadge">NOT CONNECTED</div>
+        </div>
+
+        <!-- STAKE FORM -->
+        <div id="stakeSection">
+          <div class="input-group">
+            <div class="input-header">
+              <span>Amount to Stake</span>
+              <span>Balance: <span id="walletTokenBalance">0.00</span></span>
+            </div>
+            <div class="input-row">
+              <input type="text" inputmode="decimal" autocomplete="off" class="token-input" id="stakeInput" placeholder="0.0" data-action="ui-4">
+              <button class="max-btn" data-action="ui-5">MAX</button>
+              <div class="token-badge">
+                <span>STAKED</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-list">
+            <div class="info-row">
+              <span>Lock Duration</span>
+              <span class="info-val">7 Days</span>
+            </div>
+            <div class="info-row">
+              <span>Top-Up Rule</span>
+              <span class="info-val" style="color: var(--warning);">Resets 7-Day Timer</span>
+            </div>
+          </div>
+
+          <div id="approvalNotice" class="approval-note" hidden>
+            Your existing approval is higher than this amount.
+            <button class="btn btn-secondary" id="reduceApprovalBtn" type="button">Limit approval to this amount</button>
+          </div>
+          <button class="btn btn-primary" id="stakeActionBtn" style="width: 100%; padding: 1rem;" data-action="ui-6" disabled hidden>
+            Enter Amount
+          </button>
+        </div>
+
+        <!-- UNSTAKE FORM -->
+        <div id="unstakeSection" style="display: none;">
+          <div class="input-group">
+            <div class="input-header">
+              <span>Amount to Unstake</span>
+              <span>Staked: <span id="userStakedBalSub">0.00</span></span>
+            </div>
+            <div class="input-row">
+              <input type="text" inputmode="decimal" autocomplete="off" class="token-input" id="unstakeInput" placeholder="0.0" data-action="ui-7">
+              <button class="max-btn" data-action="ui-8">MAX</button>
+              <div class="token-badge">
+                <span>STAKED</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Penalty Box if Locked -->
+          <div class="penalty-warning" id="penaltyWarningBox" style="display: none;">
+            <strong>⚠️ EARLY UNSTAKE PENALTY ACTIVE</strong><br>
+            Your 7-day lock is still active. If you unstake now:
+            <ul style="margin: 0.5rem 0 0 1.25rem;">
+              <li><strong>20% principal slashed</strong> & sent to 0xdead: <span id="slashedCalc" style="font-family: monospace;">0.00</span> STAKED</li>
+              <li><strong>100% of accrued rewards forfeited</strong> (including rewards on tokens you leave staked).</li>
+              <li>You will receive: <span id="netReturnCalc" style="font-family: monospace;">0.00</span> STAKED</li>
+            </ul>
+          </div>
+
+          <button class="btn btn-danger" id="unstakeActionBtn" style="width: 100%; padding: 1rem;" data-action="ui-9" disabled>
+            Unstake
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Claim Rewards Card -->
+      <div class="card rewards-card">
+        <div>
+          <div class="card-header">
+            <div class="card-title">
+              <span>Accrued Rewards</span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+              Streams Real-Time
+            </div>
+          </div>
+
+          <!-- USDC Reward Box -->
+          <div class="reward-token-row">
+            <div class="reward-token-meta">
+              <div class="reward-icon icon-usdc">$</div>
+              <div>
+                <div style="font-weight: 700;">USDC</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">From 50% BNKR Fee Swaps</div>
+              </div>
+            </div>
+            <div>
+              <div class="reward-amount" id="earnedUSDCDisplay">0.0000</div>
+              <div class="reward-usd" id="earnedUSDCValue">≈ $0.00</div>
+            </div>
+          </div>
+
+          <!-- BNKR Reward Box -->
+          <div class="reward-token-row">
+            <div class="reward-token-meta">
+              <div class="reward-icon icon-bnkr">B</div>
+              <div>
+                <div style="font-weight: 700;">BNKR</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">When funded by an authorized source</div>
+              </div>
+            </div>
+            <div>
+              <div class="reward-amount" id="earnedBNKRDisplay">0.0000</div>
+              <div class="reward-usd">BNKR Tokens</div>
+            </div>
+          </div>
+
+          <div class="info-list">
+            <div class="info-row">
+              <span>Claim Condition</span>
+              <span class="info-val" id="claimConditionText">Unlocked After 7 Days</span>
+            </div>
+            <div class="info-row">
+              <span>Early Exit Consequence</span>
+              <span class="info-val" style="color: var(--danger);">All pending rewards forfeited</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="claimRewardsBtn" style="width: 100%; padding: 1rem; margin-top: 1rem;" data-action="ui-10" disabled>
+          Claim All Rewards
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Deflationary Architecture Explainer -->
+    <div class="protocol-flywheel">
+      <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Deflationary Real-Yield Engine</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">
+        Eligible pool trading fees fund the distribution system. A wallet transfer does not itself generate pool fees.
+      </p>
+
+      <div class="flywheel-grid">
+        <div class="flywheel-step">
+          <div class="step-number">01 / STAKED BURNS</div>
+          <div class="step-title">50% Deflation</div>
+          <div class="step-desc">50% of all STAKED trading fees are sent directly to 0xdead. 50% goes to the Safe for liquidity management.</div>
+        </div>
+        <div class="flywheel-step">
+          <div class="step-number">02 / REAL YIELD</div>
+          <div class="step-title">50% BNKR -> USDC</div>
+          <div class="step-desc">Batched BNKR fees are swapped to USDC on Uniswap and streamed to active stakers.</div>
+        </div>
+        <div class="flywheel-step">
+          <div class="step-number">03 / COMPOUNDING</div>
+          <div class="step-title">BNKR Staking Yield</div>
+          <div class="step-desc">BNKR rewards require funding from an authorized source. Automatic BNKR staking is not enabled by the current fee-conversion job.</div>
+        </div>
+        <div class="flywheel-step">
+          <div class="step-number">04 / DISCIPLINE</div>
+          <div class="step-title">Early Exit Penalty</div>
+          <div class="step-desc">Early withdrawals burn 20% of the withdrawn amount and forfeit pending rewards. Automated buybacks are currently disabled.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div>
+      $STAKED Protocol • Built on Base
+    </div>
+    <div class="contract-links">
+      <a href="https://basescan.org/token/0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3" target="_blank" rel="noopener">Token Contract</a>
+      <a href="#" id="vaultScanLink" target="_blank" rel="noopener">Vault Contract</a>
+      <a href="#" id="distributorScanLink" target="_blank" rel="noopener">Distributor</a>
+    </div>
+  </footer>
+
+
+  <!-- Wallet Selection Modal -->
+  <div class="modal-overlay" id="walletModal" data-action="ui-11">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="walletModalTitle">Connect Wallet</div>
+        <button class="modal-close" data-action="ui-12">&times;</button>
+      </div>
+
+      <!-- View 1: main options -->
+      <div class="wallet-options" id="wcMain">
+        <button class="wallet-option-btn" data-action="ui-13">
+          <div class="wallet-opt-icon opt-icon-wc" aria-hidden="true">📱</div>
+          <div>
+            <div class="wallet-opt-name">Connect mobile wallet · WalletConnect</div>
+            <div class="wallet-opt-desc">Connect your phone’s wallet. Choose your wallet or scan a QR code.</div>
+          </div>
+        </button>
+        <button class="wallet-option-btn" data-action="ui-14">
+          <div class="wallet-opt-icon opt-icon-injected" aria-hidden="true">🖥️</div>
+          <div>
+            <div class="wallet-opt-name">Connect browser wallet · Desktop</div>
+            <div class="wallet-opt-desc">Use Rabby, MetaMask, or another browser extension.</div>
+          </div>
+        </button>
+      </div>
+
+      <div class="wc-panel" id="injectedPicker">
+        <button class="wc-back" id="injectedBack">&larr; Back</button>
+        <div class="wc-list" id="injectedList"></div>
+      </div>
+
+      <!-- View 2: searchable wallet list -->
+      <div class="wc-panel" id="wcPicker">
+        <button class="wc-back" data-action="ui-15">&larr; Back</button>
+        <input type="text" class="wc-search" id="wcSearch" placeholder="Search wallets (e.g. Rainbow, Trust, Zerion)" autocomplete="off" data-action="ui-16">
+        <div class="wc-list" id="wcList"></div>
+      </div>
+
+      <!-- View 3: QR / deep link -->
+      <div class="wc-panel" id="wcQrPanel">
+        <button class="wc-back" data-action="ui-17">&larr; Back</button>
+        <div class="wc-qr-wrap">
+          <div id="wcQrTitle" style="font-weight:700;">Scan with your wallet</div>
+          <img class="wc-qr-img" id="wcQrImg" alt="WalletConnect QR code" style="display:none;">
+          <div class="wc-qr-note" id="wcQrNote">Preparing connection...</div>
+          <a class="btn btn-primary" id="wcOpenBtn" href="#" style="display:none;">Open wallet app</a>
+          <button class="btn btn-secondary" id="wcCopyBtn" style="display:none;" data-action="ui-18">Copy connection link</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <span id="toastIcon">ℹ️</span>
+    <span id="toastMsg">Notification message</span>
+  </div>
+
+
+  <!-- Public stakers leaderboard (reads Staked events + balances from Base) -->
+
+</body>
+</html>
