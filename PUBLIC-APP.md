@@ -37,3 +37,13 @@ No private keys are entered into this site. Legacy and V3 share the pending-requ
 - Protect GitHub branches with required checks; enable account 2FA. These account settings are not changed by this branch.
 
 The tests are regression checks, not an independent security audit. Hold broad public promotion until the real-device checks pass.
+
+## Wallet usability update (October 1 UTC)
+
+The header is the only disconnected-wallet entry point. The stake action appears after connection. Browser wallets are discovered with EIP-6963 and explicitly selected; legacy provider discovery is used only when no wallets announce themselves. Wallet names are rendered as text, not HTML.
+
+Wallet connection attempts share one slot. Closing/back cancels the pending mobile attempt, expires only its own SignClient proposals, deletes its own pairing and disconnects a late approved session. WalletConnect 2.25.0's abortPairingAttempt is a no-op, so it is deliberately not used. Cleanup failures block further connection attempts until reload; an extension approval already open in the wallet may still need dismissal there.
+
+The lock timer updates claim/withdrawal eligibility and penalty copy without a refresh. Submission still requires wallet checks and simulation. Corrupt/unavailable saved-request storage allows balance reads but blocks new submissions; unreadable evidence is preserved and cannot be cleared with an unrelated transaction hash.
+
+Validation includes mocked browser cancellation/startup/late approval, coexistence of wallet extensions, lock expiry, storage corruption and desktop/mobile layout checks. These mocks do not replace real Android/iOS WalletConnect handoff checks after Cloudflare upload. No transactions or automation changes are made by this update.

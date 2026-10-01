@@ -1,3 +1,4 @@
+import {connectionGate, closePairing} from './wallet-session.js';
 import { ethers } from 'ethers';
 import QRCode from 'qrcode';
 import {pendingRequest, sendTracked, recoverPending} from './pending.js';
@@ -55,6 +56,8 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
     let activeTab = "stake";
     let countdownInterval = null;
 
+    const connection = connectionGate();
+
     // Toast helper
     function showToast(msg, icon = "ℹ️") {
       const toast = document.getElementById("toast");
@@ -69,7 +72,8 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
       document.getElementById("walletModal").classList.add("active");
     }
 
-    function hideWalletModal() {
+    function hideWalletModal(cancel = true) {
+      if (cancel) cancelConnection();
       document.getElementById("walletModal").classList.remove("active");
       showWcView("main");
     }
@@ -79,7 +83,8 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
       document.getElementById("wcMain").style.display = view === "main" ? "flex" : "none";
       document.getElementById("wcPicker").style.display = view === "picker" ? "block" : "none";
       document.getElementById("wcQrPanel").style.display = view === "qr" ? "block" : "none";
-      const titles = { main: "Connect Wallet", picker: "Choose a Wallet", qr: "Connect Wallet" };
+      document.getElementById("injectedPicker").style.display = view === "injected" ? "block" : "none";
+      const titles = { injected: "Choose a browser wallet", main: "Connect Wallet", picker: "Choose a Wallet", qr: "Connect Wallet" };
       document.getElementById("walletModalTitle").innerText = titles[view] || "Connect Wallet";
     }
 
@@ -103,7 +108,48 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
     let wcSearchTimer = null;
     let wcSearchSeq = 0;
     let wcCurrentUri = "";
-    let wcPendingProvider = null;
+    let wcAttempt = null;
+    function cancelConnection() {
+      const attempt = connection.cancel();
+      wcCurrentUri = "";
+      document.getElementById('wcQrImg').removeAttribute('src');
+      document.getElementById('wcOpenBtn').removeAttribute('href');
+      if (attempt && attempt === wcAttempt) cleanupWc(attempt);
+    }
+    async function cleanupWc(attempt) {
+      // Serialize cleanup but allow another pass if a URI/session arrives late.
+      attempt.cleanup = (attempt.cleanup || Promise.resolve()).then(() => closePairing(attempt.wc, attempt.topic));
+      try { await attempt.cleanup; }
+      catch { showToast('Connection cleanup could not finish. Reload before reconnecting.', '⚠️'); }
+    }
+    const installedWallets = new Map();
+    window.addEventListener('eip6963:announceProvider', event => {
+      const d = event.detail;
+      if (!d?.provider || typeof d.provider.request !== 'function' || typeof d.info?.name !== 'string') return;
+      installedWallets.set(d.provider, {provider:d.provider, name:d.info.name.slice(0,80)});
+      if (document.getElementById('injectedPicker').style.display === 'block') renderInjectedWallets();
+    });
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+    function browserWallets() {
+      if (installedWallets.size) return [...installedWallets.values()];
+      const providers = window.ethereum?.providers || (window.ethereum ? [window.ethereum] : []);
+      return [...new Set(providers)].filter(p => typeof p?.request === 'function').map(p => ({provider:p,
+        name:p.isRabby ? 'Rabby' : p.isCoinbaseWallet ? 'Coinbase Wallet' : p.isMetaMask ? 'MetaMask' : 'Browser wallet'}));
+    }
+    function renderInjectedWallets() {
+      const list = document.getElementById('injectedList'); list.replaceChildren();
+      const wallets = browserWallets();
+      if (!wallets.length) { list.textContent = 'No browser wallet detected. Use the mobile WalletConnect option, or unlock your extension and try again.'; return; }
+      for (const wallet of wallets) {
+        const button = document.createElement('button'); button.className = 'wc-item';
+        button.textContent = wallet.name; button.onclick = () => connectInjected(wallet.provider);
+        list.appendChild(button);
+      }
+    }
+    function openInjectedPicker() {
+      window.dispatchEvent(new Event('eip6963:requestProvider'));
+      showWcView('injected'); renderInjectedWallets();
+    }
 
     async function fetchWcWallets(query) {
       const url = "https://explorer-api.walletconnect.com/v3/wallets?projectId=" + WC_PROJECT_ID +
@@ -203,7 +249,8 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
 
     function wcDeepLink(wallet, uri) { return walletDeepLink(wallet, uri); }
 
-    async function handleWcUri(uri, wallet) {
+    async function handleWcUri(uri, wallet, attempt) {
+      if (attempt.cancelled) return;
       wcCurrentUri = uri;
       const qrTitle = document.getElementById("wcQrTitle");
       const note = document.getElementById("wcQrNote");
@@ -234,7 +281,9 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
         ? "Scan this QR code with " + wallet.name + " on your phone, or use the button below on mobile."
         : "Scan this QR code with any WalletConnect-compatible wallet.";
       try {
-        img.src = await QRCode.toDataURL(uri, { width: 240, margin: 1 });
+        const src = await QRCode.toDataURL(uri, { width: 240, margin: 1 });
+        if (attempt.cancelled) return;
+        img.src = src;
         img.style.display = "block";
       } catch (e) {
         console.error("QR render failed", e);
@@ -253,35 +302,28 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
     }
 
     function cancelWcConnect() {
-      wcCurrentUri = "";
-      try { if (wcPendingProvider && wcPendingProvider.disconnect) wcPendingProvider.disconnect(); } catch (e) {}
-      wcPendingProvider = null;
+      cancelConnection();
       showWcView("picker");
     }
 
-    // Injected (MetaMask, Rabby, etc.)
-    async function connectInjected() {
-      hideWalletModal();
-      if (!window.ethereum) {
-        showToast("No extension detected. Opening WalletConnect QR code...", "ℹ️");
-        setTimeout(function () { connectWalletConnect(null); }, 500);
-        return;
-      }
-
+    async function connectInjected(injected) {
+      const attempt = connection.begin();
+      if (!attempt) { showToast('Finish or cancel the current wallet connection first.'); return; }
       try {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
+        provider = new ethers.providers.Web3Provider(injected);
         await provider.send("eth_requestAccounts", []);
 
+        if (attempt.cancelled) return;
         const network = await provider.getNetwork();
         if (network.chainId !== CONFIG.CHAIN_ID) {
           try {
-            await window.ethereum.request({
+            await injected.request({
               method: "wallet_switchEthereumChain",
               params: [{ chainId: CONFIG.CHAIN_HEX }]
             });
           } catch (switchError) {
             if (switchError.code === 4902) {
-              await window.ethereum.request({
+              await injected.request({
                 method: "wallet_addEthereumChain",
                 params: [{
                   chainId: CONFIG.CHAIN_HEX,
@@ -298,10 +340,14 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
           }
         }
 
+        if (attempt.cancelled) return;
         signer = provider.getSigner();
-        userAddress = await signer.getAddress();
+        const address = await signer.getAddress();
+        await checkWallet(provider, address);
+        if (attempt.cancelled) return;
+        userAddress = address;
+        hideWalletModal(false);
         signer = provider.getSigner(userAddress);
-        await checkWallet(provider, userAddress);
         window.userAddress = userAddress;
 
         document.getElementById("connectBtn").innerText = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
@@ -310,17 +356,20 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
         await refreshUserData();
         showToast("Connected to Base", "✅");
 
-        window.ethereum.on("accountsChanged", () => window.location.reload());
-        window.ethereum.on("chainChanged", () => window.location.reload());
+        injected.on?.("accountsChanged", () => window.location.reload());
+        injected.on?.("chainChanged", () => window.location.reload());
 
       } catch (err) {
         console.error("Wallet connection error:", err);
-        showToast(friendlyError(err, "connect your wallet"), "❌");
-      }
+        if (!attempt.cancelled) showToast(friendlyError(err, "connect your wallet"), "❌");
+      } finally { connection.finish(attempt); }
     }
 
     // WalletConnect v2 (wallet = registry listing or null for generic QR)
     async function connectWalletConnect(wallet) {
+      const attempt = connection.begin();
+      if (!attempt) { showToast('A connection is still pending or closing. Please wait.'); return; }
+      wcAttempt = attempt;
       showWalletModal();
       showWcView("qr");
       document.getElementById("wcQrTitle").innerText = wallet ? "Connecting to " + wallet.name : "Preparing connection";
@@ -331,6 +380,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
 
       try {
         const { EthereumProvider } = await import('./wallet-connect.js');
+        if (attempt.cancelled) return;
         const wc = await EthereumProvider.init({
           projectId: WC_PROJECT_ID,
           optionalChains: [CONFIG.CHAIN_ID],
@@ -345,19 +395,26 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
             icons: []
           }
         });
-        wcPendingProvider = wc;
-
-        wc.on("display_uri", function (uri) { handleWcUri(uri, wallet); });
-
+        attempt.wc = wc;
+        if (attempt.cancelled) return;
+        attempt.onUri = uri => {
+          attempt.topic = /^wc:([0-9a-f]+)@/i.exec(uri)?.[1];
+          if (attempt.cancelled) { cleanupWc(attempt); return; }
+          handleWcUri(uri, wallet, attempt);
+        };
+        wc.on("display_uri", attempt.onUri);
         await wc.enable();
-        wcPendingProvider = null;
-        hideWalletModal();
+        if (attempt.cancelled) return;
 
         provider = new ethers.providers.Web3Provider(wc);
         signer = provider.getSigner();
-        userAddress = await signer.getAddress();
+        const address = await signer.getAddress();
+        await checkWallet(provider, address);
+        if (attempt.cancelled) return;
+        userAddress = address;
+        attempt.accepted = true;
+        hideWalletModal(false);
         signer = provider.getSigner(userAddress);
-        await checkWallet(provider, userAddress);
         window.userAddress = userAddress;
 
         document.getElementById("connectBtn").innerText = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
@@ -372,8 +429,13 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
 
       } catch (err) {
         console.error("WalletConnect error:", err);
-        hideWalletModal();
-        showToast(friendlyError(err, "connect your wallet"), "❌");
+        if (!attempt.cancelled) { hideWalletModal(false); showToast(friendlyError(err, "connect your wallet"), "❌"); }
+      } finally {
+        if (attempt.onUri) attempt.wc.removeListener('display_uri', attempt.onUri);
+        if (!attempt.accepted) await cleanupWc(attempt);
+        // Failed cleanup deliberately keeps the slot blocked until reload.
+        try { await attempt.cleanup; connection.finish(attempt); } catch {}
+        if (wcAttempt === attempt) wcAttempt = null;
       }
     }
 
@@ -477,12 +539,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
           // Update lock countdown
           startLockCountdown();
 
-          // Claim button enablement
-          const isUnlocked = Date.now() / 1000 >= userLockExpiry;
-          const hasRewards = earnedU.gt(0) || earnedB.gt(0);
-          document.getElementById("claimRewardsBtn").disabled = !isUnlocked || !hasRewards;
-          document.getElementById("claimConditionText").innerText = isUnlocked ? "Claim Available" : "Locked Until Timer Expires";
-          document.getElementById("claimConditionText").style.color = isUnlocked ? "var(--secondary)" : "var(--warning)";
+
         } else {
           document.getElementById("totalStakedDisplay").innerText = "Not Deployed";
           document.getElementById("userStakedDisplay").innerText = "0.00";
@@ -492,6 +549,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
         document.getElementById('accountReadStatus').textContent = 'Balances updated from Base.';
         validateStakeInput();
         validateUnstakeInput();
+        updateLockActions();
 
       } catch (err) {
         accountDataLoaded = false;
@@ -503,6 +561,14 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
       } finally { refreshingAccount = false; }
     }
 
+    function updateLockActions() {
+      const unlocked = Date.now()/1000 >= userLockExpiry;
+      document.getElementById('claimRewardsBtn').disabled = transactionBusy || !accountDataLoaded || !userAddress || !unlocked || (userEarnedUSDC.isZero() && userEarnedBNKR.isZero());
+      document.getElementById('claimConditionText').textContent = unlocked ? 'Claim Available' : 'Locked Until Timer Expires';
+      document.getElementById('claimConditionText').style.color = unlocked ? 'var(--secondary)' : 'var(--warning)';
+      validateUnstakeInput();
+    }
+
     // Countdown Timer Loop
     function startLockCountdown() {
       if (countdownInterval) clearInterval(countdownInterval);
@@ -510,6 +576,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
       const update = () => {
         const now = Math.floor(Date.now() / 1000);
         const remaining = userLockExpiry - now;
+        updateLockActions();
 
         const box = document.getElementById("lockStatusBox");
         const badge = document.getElementById("lockStatusBadge");
@@ -552,12 +619,8 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
       document.getElementById("approvalNotice").hidden = true;
       const btn = document.getElementById("stakeActionBtn");
       if (!CONFIG.DEPOSIT_ENABLED) { btn.innerText = "New deposits use V3"; btn.disabled = true; return; }
-      if (!userAddress) {
-        btn.innerText = "Connect Wallet";
-        btn.disabled = false;
-        btn.onclick = connectWallet;
-        return;
-      }
+      btn.hidden = !userAddress;
+      if (!userAddress) { btn.disabled = true; btn.onclick = null; return; }
 
       if (!CONFIG.VAULT_ADDRESS) {
         btn.innerText = "Vault Contract Not Set";
@@ -759,7 +822,7 @@ document.querySelector('[data-action="ui-10"]').addEventListener("click", functi
 document.querySelector('[data-action="ui-11"]').addEventListener("click", function(event) { if(event.target === this) hideWalletModal(); });
 document.querySelector('[data-action="ui-12"]').addEventListener("click", function(event) { hideWalletModal(); });
 document.querySelector('[data-action="ui-13"]').addEventListener("click", function(event) { openWcPicker(); });
-document.querySelector('[data-action="ui-14"]').addEventListener("click", function(event) { connectInjected(); });
+document.querySelector('[data-action="ui-14"]').addEventListener("click", function(event) { openInjectedPicker(); });
 document.querySelector('[data-action="ui-15"]').addEventListener("click", function(event) { showWcView('main'); });
 document.querySelector('[data-action="ui-16"]').addEventListener("input", function(event) { onWcSearch(); });
 document.querySelector('[data-action="ui-17"]').addEventListener("click", function(event) { cancelWcConnect(); });
@@ -772,6 +835,8 @@ function showPending() {
   document.getElementById('pendingNotice').hidden = !saved;
   if (saved) {
     document.getElementById('pendingText').textContent = saved.hash ? 'A transaction was submitted. Check its confirmation before another action.' : 'The wallet request may have been submitted. Check wallet activity; do not repeat it. If you cancelled without a transaction, contact support to resolve this saved request.';
+    if (saved.invalid) document.getElementById('pendingText').textContent = 'Saved wallet request data is unreadable. Balances remain available, but new transactions are blocked. Contact support before retrying.';
+    document.getElementById('checkPending').disabled = !!saved.invalid;
     document.getElementById('recoveryHash').value = saved.hash || '';
   }
 }
@@ -780,6 +845,8 @@ document.getElementById('checkPending').addEventListener('click',async()=>{
   catch { showToast('Could not verify this request. Check the transaction hash and wallet activity; do not resend.'); }
 });
 window.addEventListener('storage',showPending);
+document.getElementById('injectedBack').addEventListener('click',()=>showWcView('main'));
+document.addEventListener('keydown',e=>{if(e.key==='Escape') hideWalletModal();});
 document.getElementById('vaultLabel').textContent = CONFIG.VAULT_VERSION === 3 ? 'V3 staking' : 'Existing V2 stakes';
 document.getElementById(CONFIG.VAULT_VERSION === 3 ? 'v3Link' : 'legacyLink').setAttribute('aria-current','page');
 if (!CONFIG.DEPOSIT_ENABLED) {

@@ -66,7 +66,7 @@ async function fixture(options={}) {
    if(p.name==='approve')values=[true];
    else if(p.name==='balanceOf'||p.name==='totalSupply')values=[units('1000')];
    else if(p.name==='allowance')values=[state.allowance];
-   else if(p.name==='lockEnd')values=[state.mature ? now-60 : now+86400];
+   else if(p.name==='lockEnd')values=[state.expiry ?? (state.mature ? now-60 : now+86400)];
    else if(p.name==='earned'||p.name==='rewardRatePerSecond')values=[state.rewards && p.name==='earned' ? 1000000 : 0];
    else if(p.name==='previewWithdraw') {
     if(state.previewFail)throw {code:-32000,message:'execution reverted'};
@@ -84,6 +84,11 @@ async function fixture(options={}) {
  });
  await page.route('**/*',async route=>{
   const req=route.request();
+  if(options.mockWc && req.url().startsWith(origin)) {
+   const meta=JSON.parse(await readFile('build/web-metafile.json','utf8'));
+   const chunk=Object.entries(meta.outputs).find(([,v])=>v.entryPoint==='web/src/wallet-connect.js')[0];
+   if(new URL(req.url()).pathname==='/'+chunk) return route.fulfill({contentType:'text/javascript',body:await readFile('test/fixtures/wc-provider.js','utf8')});
+  }
   if(req.url().startsWith(origin))return route.continue();
   if(req.method()==='POST' && /base\.org|publicnode\.com/.test(req.url())) {
    const data=req.postDataJSON();
@@ -95,7 +100,7 @@ async function fixture(options={}) {
  });
  await page.goto(origin+(options.path||'/'),{waitUntil:'load'});
  await expect(page.locator('#totalStakedDisplay')).toHaveText('1,000');
- const connect=async()=>{await page.click('#connectBtn');await page.click('[data-action="ui-14"]');await expect(page.locator('#walletTokenBalance')).toHaveText('1,000');};
+ const connect=async()=>{await page.click('#connectBtn');await page.click('[data-action="ui-14"]');await page.locator('#injectedList button').first().click();await expect(page.locator('#walletTokenBalance')).toHaveText('1,000');};
  return {page,state,errors,connect,close:()=>context.close()};
 }
 
@@ -218,4 +223,82 @@ test('connected wallet may reject eth_call while independent Base reads show the
 });
 test('failed public balance reads show unavailable, disable actions, and recover on refresh',async()=>{
  const f=await fixture();try{await f.connect();f.state.publicReadFail=true;await f.page.click('#refreshBalances');await expect(f.page.locator('#userStakedDisplay')).toHaveText('Unavailable',{timeout:20000});await expect(f.page.locator('#stakeActionBtn')).toBeDisabled();await expect(f.page.locator('#claimRewardsBtn')).toBeDisabled();f.state.publicReadFail=false;await f.page.click('#refreshBalances');await expect(f.page.locator('#userStakedDisplay')).toHaveText('1,000',{timeout:20000});assert.equal(f.state.sent.length,0);}finally{await f.close();}
+});
+
+test('only header connects while disconnected; extension choice uses selected provider',async()=>{
+ const f=await fixture();try {
+  await expect(f.page.locator('#stakeActionBtn')).toBeHidden();
+  await f.page.evaluate(()=>{
+   window.selected=[];
+   for(const name of ['Rabby','MetaMask']) {
+    const provider={on(){},request:async p=>{if(p.method==='eth_requestAccounts')window.selected.push(name);return window.ethereum.request(p);}};
+    window.dispatchEvent(new CustomEvent('eip6963:announceProvider',{detail:{info:{name,uuid:name},provider}}));
+   }
+  });
+  await f.page.click('#connectBtn');await f.page.click('[data-action="ui-14"]');
+  await expect(f.page.locator('#injectedList button')).toHaveCount(2);
+  await f.page.getByRole('button',{name:'Rabby',exact:true}).click();
+  await expect(f.page.locator('#userStakedDisplay')).toHaveText('1,000');
+  assert.deepEqual(await f.page.evaluate(()=>window.selected),['Rabby']);
+  await expect(f.page.locator('#stakeActionBtn')).toBeVisible();
+ }finally{await f.close();}
+});
+test('lock expiry updates claim eligibility and removes penalty without refresh',async()=>{
+ const f=await fixture({expiry:now+60,rewards:true});try {
+  await f.page.clock.install({time:new Date(now*1000)});await f.connect();
+  await f.page.click('#tabUnstake');await f.page.fill('#unstakeInput','10');
+  await expect(f.page.locator('#penaltyWarningBox')).toBeVisible();await expect(f.page.locator('#claimRewardsBtn')).toBeDisabled();
+  await f.page.clock.fastForward(61000);
+  await expect(f.page.locator('#penaltyWarningBox')).toBeHidden();await expect(f.page.locator('#claimRewardsBtn')).toBeEnabled();
+  await expect(f.page.locator('#unstakeActionBtn')).toHaveText('Unstake $STAKED');assert.equal(f.state.sent.length,0);
+ }finally{await f.close();}
+});
+test('invalid saved request does not block reads and cannot be cleared by an unrelated hash',async()=>{
+ const f=await fixture();try {
+  await f.page.evaluate(a=>localStorage.setItem('staked:base:pending:'+a,'{broken'),account);
+  await f.connect();await expect(f.page.locator('#userStakedDisplay')).toHaveText('1,000');
+  await expect(f.page.locator('#pendingText')).toContainText('unreadable');await expect(f.page.locator('#checkPending')).toBeDisabled();
+  await f.page.fill('#stakeInput','10');await f.page.click('#stakeActionBtn');
+  await expect(f.page.locator('#toastMsg')).toContainText('unresolved');assert.equal(f.state.sent.length,0);
+  assert.equal(await f.page.evaluate(a=>localStorage.getItem('staked:base:pending:'+a),account),'{broken');
+ }finally{await f.close();}
+});
+
+async function startMobile(page) {
+ await page.click('#connectBtn');await page.click('[data-action="ui-13"]');
+ await page.getByRole('button',{name:/Show QR code/}).click();
+}
+test('closing WalletConnect clears its pairing; repeated clicks create only one attempt',async()=>{
+ const f=await fixture({mockWc:true});try {
+  await startMobile(f.page);await expect.poll(()=>f.page.evaluate(()=>window.wcTest?.enables)).toBe(1);
+  await f.page.locator('#wcList button').first().evaluate(b=>{b.click();b.click();});
+  assert.equal(await f.page.evaluate(()=>window.wcTest.inits),1);
+  await f.page.click('[data-action="ui-12"]');
+  await expect.poll(()=>f.page.evaluate(()=>window.wcTest.removed)).toBe(1);
+  await expect(f.page.locator('#connectBtn')).toHaveText('Connect Wallet');
+  await startMobile(f.page);await expect.poll(()=>f.page.evaluate(()=>window.wcTest.enables)).toBe(2);
+  assert.equal(await f.page.evaluate(()=>window.wcTest.maxActive),1);
+  await f.page.click('[data-action="ui-17"]');
+  await expect.poll(()=>f.page.evaluate(()=>window.wcTest.removed)).toBe(2);
+  assert.equal(f.state.sent.length,0);
+ }finally{await f.close();}
+});
+test('closing during WalletConnect startup prevents enable and ignores late initialization',async()=>{
+ const f=await fixture({mockWc:true});try {
+  await f.page.evaluate(()=>{window.wcTest={inits:0,enables:0,active:0,maxActive:0,removed:0,delayInit:true};});
+  await startMobile(f.page);await expect.poll(()=>f.page.evaluate(()=>!!window.wcTest.releaseInit)).toBe(true);
+  await f.page.click('[data-action="ui-12"]');await f.page.evaluate(()=>window.wcTest.releaseInit());
+  await f.page.evaluate(()=>{window.wcTest.delayInit=false});
+  await startMobile(f.page);await expect.poll(()=>f.page.evaluate(()=>window.wcTest.enables)).toBe(1);
+  assert.equal(await f.page.evaluate(()=>window.wcTest.inits),2);
+  await f.page.click('[data-action="ui-12"]');assert.equal(f.state.sent.length,0);
+ }finally{await f.close();}
+});
+test('late WalletConnect approval after closing is disconnected without adopting account',async()=>{
+ const f=await fixture({mockWc:true});try {
+  await startMobile(f.page);await expect.poll(()=>f.page.evaluate(()=>window.wcTest?.enables)).toBe(1);
+  await f.page.evaluate(()=>{document.querySelector('[data-action="ui-12"]').click();window.wcTest.approve();});
+  await expect.poll(()=>f.page.evaluate(()=>window.wcTest.disconnected)).toBe(1);
+  await expect(f.page.locator('#connectBtn')).toHaveText('Connect Wallet');assert.equal(f.state.sent.length,0);
+ }finally{await f.close();}
 });

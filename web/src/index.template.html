@@ -119,8 +119,8 @@
             Your existing approval is higher than this amount.
             <button class="btn btn-secondary" id="reduceApprovalBtn" type="button">Limit approval to this amount</button>
           </div>
-          <button class="btn btn-primary" id="stakeActionBtn" style="width: 100%; padding: 1rem;" data-action="ui-6" disabled>
-            Connect Wallet
+          <button class="btn btn-primary" id="stakeActionBtn" style="width: 100%; padding: 1rem;" data-action="ui-6" disabled hidden>
+            Enter Amount
           </button>
         </div>
 
@@ -288,6 +288,11 @@
             <div class="wallet-opt-desc">Use Rabby, MetaMask, or another browser extension.</div>
           </div>
         </button>
+      </div>
+
+      <div class="wc-panel" id="injectedPicker">
+        <button class="wc-back" id="injectedBack">&larr; Back</button>
+        <div class="wc-list" id="injectedList"></div>
       </div>
 
       <!-- View 2: searchable wallet list -->

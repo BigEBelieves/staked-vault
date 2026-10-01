@@ -1,7 +1,21 @@
 import { checkWallet } from './safety.js';
 
 const key = account => 'staked:base:pending:' + account.toLowerCase();
-export const pendingRequest = account => account ? JSON.parse(localStorage.getItem(key(account)) || 'null') : null;
+export function pendingRequest(account) {
+  if (!account) return null;
+  try {
+    const raw = localStorage.getItem(key(account));
+    if (raw === null) return null;
+    const r = JSON.parse(raw);
+    const address = x => typeof x === 'string' && /^0x[0-9a-f]{40}$/i.test(x);
+    if (!r || Array.isArray(r) || !address(r.account) || r.account.toLowerCase() !== account.toLowerCase() ||
+        !address(r.to) || typeof r.data !== 'string' || !/^0x(?:[0-9a-f]{2})*$/i.test(r.data) ||
+        !Number.isSafeInteger(r.nonce) || r.nonce < 0 || !Number.isSafeInteger(r.block) || r.block < 0 ||
+        typeof r.method !== 'string' || !(r.hash === null || /^0x[0-9a-f]{64}$/i.test(r.hash)))
+      return {invalid:true};
+    return r;
+  } catch { return {invalid:true}; }
+}
 export async function sendTracked(provider, account, contract, method, args = []) {
   if (!navigator.locks) throw new Error('Transaction locking unavailable. Use a current browser over HTTPS.');
   return navigator.locks.request(key(account), { ifAvailable: true }, async lock => {
@@ -33,6 +47,7 @@ export async function recoverPending(provider, account, suppliedHash) {
   await checkWallet(provider, account);
   const saved = pendingRequest(account);
   if (!saved) return false;
+  if (saved.invalid) throw new Error("Saved request cannot be verified. Contact support; do not resend.");
   const hash = saved.hash || suppliedHash.trim();
   if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error('Enter the transaction hash shown in your wallet activity.');
   const [tx, receipt] = await Promise.all([provider.getTransaction(hash), provider.getTransactionReceipt(hash)]);

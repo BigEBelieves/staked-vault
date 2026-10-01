@@ -8,7 +8,7 @@
     "compile": "node scripts/compile.mjs",
     "test": "node scripts/compile.mjs && node test/vault.test.mjs",
     "build:web": "node scripts/build-web.mjs",
-    "test:web": "npm run build:web && node --test test/web-safety.test.mjs test/web-browser.test.mjs"
+    "test:web": "npm run build:web && node --test test/web-safety.test.mjs test/web-session.test.mjs test/web-browser.test.mjs"
   },
   "devDependencies": {
     "@ethereumjs/block": "5.3.0",
