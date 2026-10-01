@@ -46,10 +46,13 @@ const policy = [
   'worker-src blob:',
 ].join('; ');
 const template = readFileSync('web/src/index.template.html','utf8');
-writeFileSync(outdir+'/style.css',readFileSync('web/src/style.css'));
+// Version CSS URLs as well as JavaScript: stale cached CSS must not fail a new page's SRI check.
+const css = readFileSync('web/src/style.css');
+const stylesheet = outdir + '/style-' + createHash('sha256').update(css).digest('hex').slice(0,16) + '.css';
+writeFileSync(stylesheet, css);
 mkdirSync('legacy',{recursive:true});
 for (const [path,prefix] of [['index.html',''],['web/index.html','../'],['legacy/index.html','../']]) {
-  const assets = `<link rel="stylesheet" href="${prefix}${outdir}/style.css" integrity="${sri(outdir+'/style.css')}">\n  <script type="module" src="${prefix}${entry}" integrity="${sri(entry)}"></script>`;
+  const assets = `<link rel="stylesheet" href="${prefix}${stylesheet}" integrity="${sri(stylesheet)}">\n  <script type="module" src="${prefix}${entry}" integrity="${sri(entry)}"></script>`;
   const html = template.replace('  <!-- LOCAL_ASSETS -->', '  '+assets)
     .replace('<meta charset="UTF-8">', '<meta charset="UTF-8">\n  <meta http-equiv="Content-Security-Policy" content="'+policy+'">');
   if (/\son\w+=|<script(?![^>]*\bsrc=)/i.test(html)) throw new Error('Executable inline content must not survive the build');

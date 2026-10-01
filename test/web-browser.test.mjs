@@ -345,3 +345,13 @@ test('USDC pool never shows buyback funds or hides positive sub-cent balances',a
   assert.equal(f.state.sent.length,0);
  }finally{await f.close();}
 });
+
+test('stylesheet uses a content-versioned URL and matches its integrity hash',async()=>{
+ const f=await fixture();try {
+  const link=f.page.locator('link[rel="stylesheet"][href^="assets/"]');
+  assert.match(await link.getAttribute('href'), /^assets\/vault\/style-[a-f0-9]{16}\.css$/);
+  assert.match(await link.getAttribute('integrity'), /^sha384-/);
+  await expect(f.page.locator('body')).not.toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  assert.equal(await f.page.evaluate(()=>window.cspViolations.length),0);
+ }finally{await f.close();}
+});
