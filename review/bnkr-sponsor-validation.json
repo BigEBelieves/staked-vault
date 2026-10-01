@@ -15,9 +15,12 @@
   "optimizerRuns": 200,
   "evmVersion": "paris",
   "fork": {
-    "status": "in_progress",
+    "status": "INCOMPLETE_STOPPED",
     "block": 52009577,
-    "firstAttempt": "startup timeout; second attempt started Anvil successfully"
+    "completedChecks": 1,
+    "completedEvidence": "Real Bankr deployed runtime matches expected code hash",
+    "reason": "First startup timed out; second started Anvil but historical RPC reads were too slow to finish. Stopped locally. Stake/harvest/recovery checks did not complete.",
+    "deploymentBlocker": true
   },
   "sourceSha256": {
     "contracts/StakedBankrSponsor.sol": "cad27ff77b24755873a8cb6893c808aa5beaecba701344cc33ac86f228b8bc52",
@@ -30,5 +33,11 @@
     "No sponsorship automation or signing UI yet",
     "Sponsor address and exact amount not selected",
     "No personal unstake or contribution authorized for execution by this artifact"
-  ]
+  ],
+  "ci": {
+    "commit": "5610992130f35b7c71ec13abc53e2e1d916dc90c",
+    "sponsorshipWorkflowRun": 36887870063,
+    "status": "success",
+    "checks": "51 sponsor plus 30 existing adapter checks"
+  }
 }
