@@ -845,3 +845,11 @@
 .bnkr-refresh { display: flex; gap: 12px; justify-content: space-between; align-items: center; color: var(--text-muted); }
 .bnkr-refresh button { padding: 10px 16px; border-radius: 8px; cursor: pointer; background: transparent; color: inherit; border: 1px solid currentColor; }
 @media(max-width:600px) { .bnkr-metrics { grid-template-columns: 1fr; } .bnkr-refresh { flex-wrap: wrap; } }
+
+.bnkr-protocol { margin-bottom: 2rem; }
+.bnkr-metrics { margin-top: 20px; }
+.pool-position { padding: 20px; border: 1px solid var(--card-border); border-radius: 14px; min-width: 0; }
+.pool-value { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin: 12px 0; }
+.pool-value span { color: var(--text-muted); font-size: .85rem; }
+.pool-details { margin-top: 20px; }
+.pool-details summary { cursor: pointer; padding: 10px 0; font-size: .9rem; }

@@ -18,17 +18,25 @@ export async function readBnkrStats(provider) {
   const adapter = new ethers.Contract(BNKR_STAKING.adapter, adapterAbi, provider);
   const token = new ethers.Contract(CONFIG.BNKR_TOKEN, ['function balanceOf(address) view returns(uint256)'], provider);
   const staking = new ethers.Contract(BNKR_STAKING.staking, ['function stakeOf(address) view returns(uint256)'], provider);
-  const [idle, paused, target, safe, active, safeBalance] = await Promise.all([
+  const usdc = new ethers.Contract(CONFIG.USDC_TOKEN, ['function balanceOf(address) view returns(uint256)'], provider);
+  const vault = new ethers.Contract(CONFIG.VAULT_ADDRESS, ['function buybackReserve() view returns(uint256)'], provider);
+  const [idle, paused, target, safe, active, safeBalance, usdcBalance, reserve] = await Promise.all([
     adapter.idlePrincipal(opts), adapter.paused(opts), adapter.staking(opts), adapter.safe(opts),
-    staking.stakeOf(BNKR_STAKING.adapter, opts), token.balanceOf(BNKR_STAKING.safe, opts)
+    staking.stakeOf(BNKR_STAKING.adapter, opts), token.balanceOf(BNKR_STAKING.safe, opts),
+    usdc.balanceOf(CONFIG.VAULT_ADDRESS, opts), vault.buybackReserve(opts)
   ]);
   if (target.toLowerCase() !== BNKR_STAKING.staking || safe.toLowerCase() !== BNKR_STAKING.safe.toLowerCase()) throw new Error('Staking identity mismatch');
-  return { idle, paused, active, safeBalance, block };
+  if (reserve.gt(usdcBalance)) throw new Error('USDC reserve exceeds balance');
+  return { idle, paused, active, safeBalance, usdcPool: usdcBalance.sub(reserve), block };
 }
 export function formatBnkr(value) {
   if (value.isZero()) return '0';
   if (value.lt(ethers.utils.parseEther('0.01'))) return '<0.01';
   return Number(ethers.utils.formatEther(value)).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+export function formatUsdc(value) {
+  if (!value.isZero() && value.lt(10000)) return '<0.01';
+  return Number(ethers.utils.formatUnits(value, 6)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 let loading = false;
 export async function refreshBnkrStats() {
@@ -40,11 +48,12 @@ export async function refreshBnkrStats() {
     el('bnkrAwaiting').textContent = formatBnkr(stats.idle);
     el('bnkrActive').textContent = formatBnkr(stats.active);
     el('bnkrSafe').textContent = formatBnkr(stats.safeBalance);
+    el('usdcPool').textContent = formatUsdc(stats.usdcPool);
     el('bnkrStakingStatus').textContent = stats.paused ? 'Staking deposits paused' : 'Staking deposits enabled';
     el('bnkrStatsUpdated').textContent = `Updated ${new Date().toLocaleTimeString()} · Base block ${stats.block.toLocaleString()}`;
   } catch {
-    for (const id of ['bnkrAwaiting', 'bnkrActive', 'bnkrSafe']) el(id).textContent = 'Unavailable';
-    el('bnkrStakingStatus').textContent = 'Could not load staking status';
+    for (const id of ['bnkrAwaiting', 'bnkrActive', 'bnkrSafe', 'usdcPool']) el(id).textContent = 'Unavailable';
+    el('bnkrStakingStatus').textContent = 'Could not load pool balances';
     el('bnkrStatsUpdated').textContent = 'Balance reads failed. Refresh to try again.';
   } finally { loading = false; }
 }
