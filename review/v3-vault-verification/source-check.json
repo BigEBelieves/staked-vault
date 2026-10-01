@@ -1,0 +1,16 @@
+{
+  "compiler": "0.8.24+commit.e11b9ed9.Emscripten.clang",
+  "deploymentRevision": "19210c9d613665a0fcb1615a4e41436fdf2f90c1",
+  "compiledCheckout": "9c3103caffed9fbd712867f55cf3c3e79369e5a8",
+  "contractIdentifier": "contracts/StakedVaultV3.sol:StakedVaultV3",
+  "creationTransactionHash": "0x33a749aa0d3110d2bc2eb0bdb8fb449c87cf04f5a12ec443b254f301c0c5c0d9",
+  "fullCreationInputMatchesPlan": true,
+  "compiledCreationBytecodeMatches": true,
+  "constructorArguments": [
+    "0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3",
+    "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "0x22af33fe49fd1fa80c7149773dde5890d3c76f3b",
+    "0xb9066550918fa778a4039120eac878230cf8f6fc",
+    "0xf9421c19ff9e6a09b30bdf9183739a232c3f33bf"
+  ]
+}
