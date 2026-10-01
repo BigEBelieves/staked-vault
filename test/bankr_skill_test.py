@@ -81,7 +81,44 @@ class PlannerTests(unittest.TestCase):
    if m=='eth_getCode':return '0x00'
    selector=a[0]['data'][2:10];values={p.SEL['token']:int(p.TOKEN,16),p.SEL['usdc']:int(p.USDC,16),p.SEL['bnkr']:int(p.BNKR,16),p.SEL['duration']:604800,p.SEL['penalty']:2000}
    return '0x'+p.word(values.get(selector,0))
-  with patch.object(Path,'read_text',return_value=json.dumps(manifest)),self.assertRaisesRegex(ValueError,'reorganized'):p.snapshot(rpc,self.s['account'],now=1000)
+  with patch.object(Path,'read_text',side_effect=FileNotFoundError('not mirrored')),patch.object(p,'RUNTIME_SHA256',manifest['runtimeSha256']),self.assertRaisesRegex(ValueError,'reorganized'):p.snapshot(rpc,self.s['account'],now=1000)
   for m,a in seen:
    if m in ['eth_getCode','eth_call']:self.assertEqual(a[-1],'0x63')
+class TransportTests(unittest.TestCase):
+ def test_manifest_embedded_matches_audit_file(self):
+  m=json.loads((ROOT/'skills/staked-vault/references/contracts.json').read_text())
+  self.assertEqual(p.RUNTIME_SHA256,m['runtimeSha256'])
+ def test_curl_verified_tls_post(self):
+  from types import SimpleNamespace
+  response=SimpleNamespace(returncode=0,stdout=b'{"jsonrpc":"2.0","id":1,"result":"0x2105"}\n200')
+  with patch.object(p.subprocess,'run',return_value=response) as run,patch.object(p.time,'sleep'):
+   self.assertEqual(p.Rpc('https://example.org','curl')('eth_chainId',[]),'0x2105')
+  args=run.call_args.args[0];self.assertEqual(args[:2],['curl','-q']);self.assertNotIn('--insecure',args);self.assertNotIn('-k',args)
+  self.assertIn('POST',args);self.assertIn('@-',args);self.assertEqual(json.loads(run.call_args.kwargs['input'])['method'],'eth_chainId')
+ def test_curl_tls_error_stops(self):
+  from types import SimpleNamespace
+  with patch.object(p.subprocess,'run',return_value=SimpleNamespace(returncode=60)),patch.object(p.time,'sleep'),self.assertRaisesRegex(ValueError,'TLS verification'):
+   p.Rpc('https://example.org','curl')('eth_chainId',[])
+ def test_http_forbidden_no_retry_or_fallback(self):
+  with patch.object(p.Rpc,'request',return_value=(403,b'')) as request,patch.object(p.time,'sleep'),self.assertRaisesRegex(ValueError,'HTTP 403'):
+   p.Rpc('https://example.org')('eth_chainId',[])
+  self.assertEqual(request.call_count,1)
+ def test_get_success_is_not_rpc_success(self):
+  with patch.object(p.Rpc,'request',return_value=(200,b'<html>OK</html>')),patch.object(p.time,'sleep'),self.assertRaisesRegex(ValueError,'non-JSON'):
+   p.Rpc('https://example.org')('eth_chainId',[])
+ def test_wrong_response_id_stops(self):
+  with patch.object(p.Rpc,'request',return_value=(200,b'{"jsonrpc":"2.0","id":2,"result":"0x2105"}')),patch.object(p.time,'sleep'),self.assertRaisesRegex(ValueError,'Malformed'):
+   p.Rpc('https://example.org')('eth_chainId',[])
+ def test_invalid_transport(self):
+  with self.assertRaises(ValueError):p.Rpc('https://example.org','insecure')
+ def test_forbidden_urls(self):
+  for url in ['http://example.org','https://','https://user:secret@example.org','https://example.org/#secret']:
+   with self.subTest(url=url),self.assertRaises(ValueError):p.Rpc(url)
+ def test_python_verified_context_and_header(self):
+  from unittest.mock import MagicMock
+  response=MagicMock();response.__enter__.return_value.status=200;response.__enter__.return_value.read.return_value=b'{"jsonrpc":"2.0","id":1,"result":"0x2105"}'
+  with patch.object(p.ssl,'create_default_context',return_value='verified') as ctx,patch.object(p.urllib.request,'urlopen',return_value=response) as call,patch.object(p.time,'sleep'):
+   self.assertEqual(p.Rpc('https://example.org','python')('eth_chainId',[]),'0x2105')
+   ctx.assert_called_once_with();self.assertEqual(call.call_args.kwargs['context'],'verified')
+   self.assertEqual(call.call_args.args[0].get_header('User-agent'),'StakedVaultPlanner/1.1')
 if __name__=='__main__':unittest.main()

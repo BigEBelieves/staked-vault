@@ -27,3 +27,9 @@ Run locally: `python3 -m unittest discover -s test -p bankr_skill_test.py -v`.
 The Python CLI is the supported planner interface; output base-unit balances are decimal strings. It contains no signing or sending method. Bankr must provide authenticated wallet resolution, permitted contract submission, immediate pre-submit simulation, durable operation tracking, pending lookup and receipt reconciliation. If a capability is absent, stop; do not improvise a workaround. These instruction-level protections are not enforced by a new smart contract.
 
 Every spending step requires user authorization. Use exact approvals, confirm receipt, regenerate after approval, and serialize per wallet. Unknown submission outcomes block retries. Changes are limited to this skill, its tests, CI and documentation; the public app and deployed contracts are unchanged.
+
+## Bankr installation feedback and transport revision
+
+Bankr installed the first revision but omitted the JSON fingerprint file. Python started successfully, but its TLS trust store and subsequent HTTP 403 responses blocked the live snapshot. No vault status or execution capabilities were established.
+
+Revision 1.1 embeds fingerprints, explicitly links package files, uses verified Python TLS with an optional trusted CA bundle, and adds an opt-in verified curl POST transport. It does not assume curl GET success proves POST access, change providers automatically, retry 403s or bypass access controls. The JSON audit copy remains for review. Nine additional packaging/transport tests bring the total to 36. Live Bankr read-only validation is still required.

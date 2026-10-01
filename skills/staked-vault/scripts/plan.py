@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Read-only Base snapshot and allowlisted STAKED V3 transaction planner. Never signs/sends."""
-import argparse, hashlib, json, os, re, sys, time, urllib.request
-from pathlib import Path
+import argparse, hashlib, json, os, re, sys, time, urllib.request, ssl, subprocess
+from urllib.parse import urlsplit
 VAULT='0x6e6c236d5ef18caf835faf2bd495ed48e3f8ccc5'
 TOKEN='0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3'
 USDC='0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
 BNKR='0x22af33fe49fd1fa80c7149773dde5890d3c76f3b'
+RUNTIME_SHA256={'0x731d4066a8375fc590fcd9dfe8d9e58670cb8ba3': '42478fba81b9ab32a3df3ab4a4f8acd67a4528f1d295a0a32924b4eb583fce4d', '0x6e6c236d5ef18caf835faf2bd495ed48e3f8ccc5': '1451d033a400907d1af06737cd23981268020c983025b7d13ca8ce5313dba391'}
 MAX=2**256-1
 SEL={'stake':'a694fc3a','withdraw':'2e1a7d4d','early-withdraw':'6b5b9696','claim':'3d18b912','approve':'095ea7b3','balance':'70a08231','allowance':'dd62ed3e','lock':'23792279','earned':'211dc32d','token':'cc7a262e','usdc':'3e413bee','bnkr':'72247519','duration':'485d3834','penalty':'5c82a112','preview':'bbc6f1dc'}
 def address(s):
@@ -60,34 +61,62 @@ def plan(s,action,quantity=None,accept_early=False):
             'transaction':{'chainId':8453,'from':account,'to':target,'value':'0x0','data':data},
             'requiresUserAuthorization':True,'requiresFreshSimulation':True}
 class Rpc:
-    def __init__(self,url):
-        if not url.startswith('https://'): raise ValueError('HTTPS RPC required')
+    """Read-only JSON-RPC over verified HTTPS; transport never changes on an error."""
+    def __init__(self,url,transport=None):
+        parsed=urlsplit(url)
+        if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password or parsed.fragment: raise ValueError('HTTPS RPC without userinfo/fragment required')
         self.url=url
+        self.transport=transport or os.environ.get('STAKED_RPC_TRANSPORT','python')
+        if self.transport not in ['python','curl']: raise ValueError('Transport must be python or curl')
+    def request(self,payload):
+        if self.transport=='curl':
+            # -q must be first: do not load a curlrc that could disable TLS checks.
+            args=['curl','-q','--proto','=https','--max-time','25','--silent','--show-error',
+                  '--request','POST','--header','Content-Type: application/json',
+                  '--user-agent','StakedVaultPlanner/1.1','--data-binary','@-',
+                  '--write-out','\n%{http_code}','--url',self.url]
+            ca=os.environ.get('SSL_CERT_FILE')
+            if ca: args+=['--cacert',ca]
+            try: r=subprocess.run(args,input=payload,capture_output=True,timeout=30,check=False)
+            except (OSError,subprocess.TimeoutExpired): raise ValueError('curl unavailable or timed out; no transaction prepared') from None
+            if r.returncode:
+                raise ValueError('TLS verification failed; configure a trusted CA bundle' if r.returncode==60 else 'curl HTTPS request failed; no transaction prepared')
+            try: body,status=r.stdout.rsplit(b'\n',1);status=int(status)
+            except (ValueError,AttributeError): raise ValueError('Malformed curl response') from None
+            return status,body
+        try:
+            context=ssl.create_default_context()
+            req=urllib.request.Request(self.url,payload,{'Content-Type':'application/json','User-Agent':'StakedVaultPlanner/1.1'})
+            with urllib.request.urlopen(req,timeout=25,context=context) as r: return r.status,r.read()
+        except urllib.error.HTTPError as e: return e.code,b''
+        except (ssl.SSLError,urllib.error.URLError):
+            raise ValueError('Python HTTPS failed; check trusted CA configuration and RPC connectivity') from None
     def __call__(self,method,params):
         if method not in ['eth_chainId','eth_blockNumber','eth_getBlockByNumber','eth_getCode','eth_call']: raise ValueError('RPC method not read-only')
         payload=json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':params}).encode()
         for attempt in range(4):
             time.sleep(1.2)
-            req=urllib.request.Request(self.url,payload,{'Content-Type':'application/json'})
-            try:
-                with urllib.request.urlopen(req,timeout=25) as r: out=json.load(r)
-                if 'error' in out:
-                    if out['error'].get('code') in [-32016,-32005,429] and attempt<3: time.sleep(2**attempt);continue
-                    raise ValueError('RPC rejected read; stop without a transaction')
-                return out['result']
-            except urllib.error.HTTPError as e:
-                if e.code==429 and attempt<3: time.sleep(2**attempt);continue
-                raise ValueError('RPC unavailable; stop without a transaction') from None
+            status,body=self.request(payload)
+            if status==429 and attempt<3: time.sleep(2**attempt);continue
+            if status!=200: raise ValueError('RPC HTTP '+str(status)+'; stop without a transaction')
+            try: out=json.loads(body)
+            except (ValueError,UnicodeDecodeError): raise ValueError('RPC returned non-JSON data') from None
+            if not isinstance(out,dict) or out.get('id')!=1 or out.get('jsonrpc')!='2.0': raise ValueError('Malformed JSON-RPC response')
+            if 'error' in out:
+                error=out['error']
+                if isinstance(error,dict) and error.get('code') in [-32016,-32005,429] and attempt<3: time.sleep(2**attempt);continue
+                raise ValueError('RPC rejected read; stop without a transaction')
+            if 'result' not in out: raise ValueError('RPC result missing')
+            return out['result']
         raise ValueError('RPC retry budget exhausted')
 def snapshot(rpc,account,now=None):
     account=address(account)
     if int(rpc('eth_chainId',[]),16)!=8453: raise ValueError('Not Base mainnet')
     head=rpc('eth_blockNumber',[]); b=rpc('eth_getBlockByNumber',[head,False]); timestamp=int(b['timestamp'],16)
     if abs((time.time() if now is None else now)-timestamp)>120: raise ValueError('Stale chain snapshot')
-    manifest=json.loads((Path(__file__).parent.parent/'references/contracts.json').read_text())
     for contract in [VAULT,TOKEN]:
         code=rpc('eth_getCode',[contract,head])
-        if hashlib.sha256(bytes.fromhex(code[2:])).hexdigest()!=manifest['runtimeSha256'][contract]: raise ValueError('Contract code mismatch')
+        if hashlib.sha256(bytes.fromhex(code[2:])).hexdigest()!=RUNTIME_SHA256[contract]: raise ValueError('Contract code mismatch')
     def call(to,method,*args):
         raw=rpc('eth_call',[{'to':to,'data':calldata(method,*args)},head])
         if not isinstance(raw,str) or not re.fullmatch(r'0x(?:[0-9a-fA-F]{64})+',raw): raise ValueError('Malformed contract read')

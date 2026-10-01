@@ -24,3 +24,7 @@ Every call sends zero ETH; ETH for Base gas is separate. No other destinations o
 Adding a deposit resets the entire position's unlock to seven days after the new deposit. `withdraw` does not claim rewards; claim separately when requested. Early withdrawal burns 20% of the withdrawn principal and forfeits all pending USDC and BNKR for that account, including rewards on the stake left behind. Do not frame it as a fee-free exit or a proportional reward reduction.
 
 Status is an observation at the displayed block, not a guarantee of current rewards or executable transactions. This skill has no custody or submission capability. Bankr's authenticated tool and user authorization are required for execution. Do not claim this integration is live-tested until an authorized user transaction is confirmed.
+
+## Sandbox transport
+
+Version 1.1 embeds both runtime fingerprints in the Python script. `contracts.json` remains an audit copy; its omission by the installer no longer blocks execution. Python uses its default verified SSL context and honors `SSL_CERT_FILE`. An explicit `STAKED_RPC_TRANSPORT=curl` uses verified HTTPS JSON-RPC POST, disables curlrc loading, follows no redirects and performs no automatic transport fallback. No insecure TLS option exists. Neither an HTTP GET 200 nor working Python `--help` verifies RPC access. A 403 may reflect network policy, authorization or a provider rule; do not assume its cause or bypass it.
