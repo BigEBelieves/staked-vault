@@ -163,7 +163,7 @@
         <div>
           <div class="card-header">
             <div class="card-title">
-              <span>Accrued Rewards</span>
+              <span>Your accrued rewards</span>
             </div>
             <div style="font-size: 0.8rem; color: var(--text-muted);">
               Streams Real-Time
@@ -180,8 +180,8 @@
               </div>
             </div>
             <div>
-              <div class="reward-amount" id="earnedUSDCDisplay">0.0000</div>
-              <div class="reward-usd" id="earnedUSDCValue">≈ $0.00</div>
+              <div class="reward-amount" id="earnedUSDCDisplay">—</div>
+              <div class="reward-usd" id="earnedUSDCValue">Connect wallet to see your rewards</div>
             </div>
           </div>
 
@@ -195,8 +195,8 @@
               </div>
             </div>
             <div>
-              <div class="reward-amount" id="earnedBNKRDisplay">0.0000</div>
-              <div class="reward-usd">BNKR Tokens</div>
+              <div class="reward-amount" id="earnedBNKRDisplay">—</div>
+              <div class="reward-usd">Your BNKR rewards · claim when unlocked</div>
             </div>
           </div>
 
@@ -218,6 +218,25 @@
       </div>
 
     </div>
+
+      <!-- Protocol funds are separate from the connected wallet's rewards. -->
+      <section class="card bnkr-protocol" id="bnkrProtocolStats" aria-labelledby="bnkrProtocolTitle">
+        <div class="card-header"><h2 class="card-title" id="bnkrProtocolTitle">Vault reward pool</h2></div>
+        <p class="bnkr-caption">Shared across STAKED stakers. Your personal earnings appear under “Your accrued rewards.”</p>
+        <div class="bnkr-metrics">
+          <div class="pool-position"><h3>BNKR staked in Bankr</h3><div class="pool-value"><strong id="bnkrActive">—</strong><span>BNKR</span></div><p>Principal staked to earn BNKR rewards for the vault. This is not a claimable reward balance.</p></div>
+          <div class="pool-position"><h3>USDC reward pool</h3><div class="pool-value"><strong id="usdcPool">—</strong><span>USDC</span></div><p>USDC held in the vault, excluding buyback funds. Includes rewards accrued but not yet claimed.</p></div>
+        </div>
+        <details class="pool-details">
+          <summary>Pending funds and staking status</summary>
+          <p class="bnkr-status" id="bnkrStakingStatus" role="status">Loading staking status…</p>
+          <div class="bnkr-safe"><span>BNKR awaiting staking</span><strong id="bnkrAwaiting">—</strong><p>Principal ready in the staking adapter. Excludes earned rewards.</p></div>
+          <div class="bnkr-safe"><span>BNKR held in the Safe</span><strong id="bnkrSafe">—</strong><p>Not staked yet. May include other Safe funds; moving it into staking requires Safe approval.</p></div>
+          <p class="bnkr-caption">The active BNKR position excludes withdrawals in cooldown. Earned BNKR must be collected and sent to the vault before it accrues to STAKED stakers. USDC held here may also include funds awaiting reward scheduling; a direct token transfer does not start distribution.</p>
+        </details>
+        <p class="bnkr-caption">Rewards are shared according to stake and distributed over time. These totals are not an APR or an amount each wallet can claim.</p>
+        <div class="bnkr-refresh"><small id="bnkrStatsUpdated">Reading Base…</small><button type="button" id="refreshBnkrStats">Refresh</button></div>
+      </section>
 
     <!-- Deflationary Architecture Explainer -->
     <div class="protocol-flywheel">

@@ -16,6 +16,8 @@ const abi=new ethers.utils.Interface([
  'function allowance(address,address) view returns(uint256)', 'function lockEnd(address) view returns(uint256)',
  'function earned(address,address) view returns(uint256)', 'function rewardRatePerSecond(address) view returns(uint256)',
  'function previewWithdraw(address,uint256) view returns(uint256,uint256,uint256,uint256)',
+ 'function buybackReserve() view returns(uint256)',
+ 'function idlePrincipal() view returns(uint256)', 'function paused() view returns(bool)', 'function staking() view returns(address)', 'function safe() view returns(address)', 'function stakeOf(address) view returns(uint256)',
  'function approve(address,uint256) returns(bool)', 'function stake(uint256)', 'function withdraw(uint256)',
  'function earlyWithdraw(uint256)', 'function getReward()',
 ]);
@@ -63,7 +65,15 @@ async function fixture(options={}) {
   if(method==='eth_call') {
    const tx=params[0];const p=abi.parseTransaction({data:tx.data});
    let values;
-   if(p.name==='approve')values=[true];
+   if (state.bnkrReadFail && ['idlePrincipal','paused','stakeOf'].includes(p.name)) throw {code:-32000,message:'staking reads unavailable'};
+   if(p.name==='idlePrincipal')values=[units('12.5')];
+   else if(p.name==='paused')values=[true];
+   else if(p.name==='staking')values=['0x88470240ff0663faefa68b1d7621b472ddd9584a'];
+   else if(p.name==='safe')values=['0xb9066550918fa778a4039120eac878230cf8f6FC'];
+   else if(p.name==='stakeOf')values=[units('456.75')];
+   else if(p.name==='approve')values=[true];
+   else if(p.name==='buybackReserve')values=[state.usdcReserve ?? '25000000'];
+   else if(p.name==='balanceOf' && tx.to.toLowerCase()===CONFIG.USDC_TOKEN.toLowerCase())values=[state.usdcPoolBalance ?? '125000000'];
    else if(p.name==='balanceOf'||p.name==='totalSupply')values=[units('1000')];
    else if(p.name==='allowance')values=[state.allowance];
    else if(p.name==='lockEnd')values=[state.expiry ?? (state.mature ? now-60 : now+86400)];
@@ -300,5 +310,48 @@ test('late WalletConnect approval after closing is disconnected without adopting
   await f.page.evaluate(()=>{document.querySelector('[data-action="ui-12"]').click();window.wcTest.approve();});
   await expect.poll(()=>f.page.evaluate(()=>window.wcTest.disconnected)).toBe(1);
   await expect(f.page.locator('#connectBtn')).toHaveText('Connect Wallet');assert.equal(f.state.sent.length,0);
+ }finally{await f.close();}
+});
+
+for (const viewport of [{width:1280,height:900},{width:390,height:844}]) {
+ test(`BNKR protocol balances separate principal, Safe funds and wallet rewards at ${viewport.width}px`, async()=>{
+  const f=await fixture({viewport});try {
+   await expect(f.page.locator('#usdcPool')).toHaveText('100.00');
+   await expect(f.page.locator('#bnkrAwaiting')).toHaveText('12.5');
+   await expect(f.page.locator('#bnkrActive')).toHaveText('456.75');
+   await expect(f.page.locator('#bnkrSafe')).toHaveText('1,000');
+   await expect(f.page.locator('#bnkrStakingStatus')).toHaveText('Staking deposits paused');
+   await expect(f.page.locator('#earnedBNKRDisplay')).toHaveText('—');
+   assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+   await f.page.locator('#bnkrProtocolStats').screenshot({path:`/tmp/bnkr-panel-${viewport.width}.png`});
+   f.state.bnkrReadFail=true;
+   await f.page.click('#refreshBnkrStats');
+   await expect(f.page.locator('#bnkrActive')).toHaveText('Unavailable',{timeout:20000});
+   await expect(f.page.locator('#usdcPool')).toHaveText('Unavailable');
+   assert.equal(f.state.sent.length,0);
+  }finally{await f.close();}
+ });
+}
+
+test('USDC pool never shows buyback funds or hides positive sub-cent balances',async()=>{
+ const f=await fixture({usdcPoolBalance:'25000001',usdcReserve:'25000000'});try {
+  await expect(f.page.locator('#usdcPool')).toHaveText('<0.01');
+  f.state.usdcPoolBalance='24999999';
+  await f.page.click('#refreshBnkrStats');
+  await expect(f.page.locator('#usdcPool')).toHaveText('Unavailable');
+  f.state.usdcPoolBalance='25000000';
+  await f.page.click('#refreshBnkrStats');
+  await expect(f.page.locator('#usdcPool')).toHaveText('0.00');
+  assert.equal(f.state.sent.length,0);
+ }finally{await f.close();}
+});
+
+test('stylesheet uses a content-versioned URL and matches its integrity hash',async()=>{
+ const f=await fixture();try {
+  const link=f.page.locator('link[rel="stylesheet"][href^="assets/"]');
+  assert.match(await link.getAttribute('href'), /^assets\/vault\/style-[a-f0-9]{16}\.css$/);
+  assert.match(await link.getAttribute('integrity'), /^sha384-/);
+  await expect(f.page.locator('body')).not.toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  assert.equal(await f.page.evaluate(()=>window.cspViolations.length),0);
  }finally{await f.close();}
 });

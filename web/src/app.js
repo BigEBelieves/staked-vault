@@ -553,6 +553,7 @@ import { parseAmount, checkWallet, friendlyError, walletDeepLink } from './safet
 
       } catch (err) {
         accountDataLoaded = false;
+        for (const id of ['earnedBNKRDisplay','earnedUSDCDisplay','earnedUSDCValue']) document.getElementById(id).textContent = 'Unavailable';
         document.getElementById('userStakedDisplay').textContent = 'Unavailable';
         document.getElementById('userStakedBalSub').textContent = 'Unavailable';
         document.getElementById('accountReadStatus').textContent = 'Your wallet is connected, but balances could not load. Tap Refresh balances to try again.';
