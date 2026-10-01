@@ -1,0 +1,34 @@
+{
+  "status": "DRAFT_NOT_DEPLOYED",
+  "date": "2026-10-01",
+  "unitChecks": {
+    "sponsor": {
+      "passed": 51,
+      "failed": 0
+    },
+    "existingFeeAdapter": {
+      "passed": 30,
+      "failed": 0
+    }
+  },
+  "compiler": "0.8.24+commit.e11b9ed9",
+  "optimizerRuns": 200,
+  "evmVersion": "paris",
+  "fork": {
+    "status": "in_progress",
+    "block": 52009577,
+    "firstAttempt": "startup timeout; second attempt started Anvil successfully"
+  },
+  "sourceSha256": {
+    "contracts/StakedBankrSponsor.sol": "cad27ff77b24755873a8cb6893c808aa5beaecba701344cc33ac86f228b8bc52",
+    "test/bnkr-sponsor.test.mjs": "bdb642af84d0f35683eb2925f36f608209c7471145e9d0aadfc74608b830d53a",
+    "test/bnkr-sponsor-fork.test.mjs": "e278af241251c6b7c18d7f979f12311192bb696e3e213a58c73cbcaa14a4e1a7"
+  },
+  "liveTransactions": false,
+  "limitations": [
+    "No independent review yet",
+    "No sponsorship automation or signing UI yet",
+    "Sponsor address and exact amount not selected",
+    "No personal unstake or contribution authorized for execution by this artifact"
+  ]
+}

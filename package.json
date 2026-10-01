@@ -10,7 +10,9 @@
     "build:web": "node scripts/build-web.mjs",
     "test:web": "npm run build:web && node --test test/web-safety.test.mjs test/web-browser.test.mjs",
     "test:bnkr": "npm run compile && node test/bnkr-staking.test.mjs",
-    "test:bnkr:fork": "node scripts/fork/run.mjs --bnkr-staking"
+    "test:bnkr:fork": "node scripts/fork/run.mjs --bnkr-staking",
+    "test:sponsor": "npm run compile && node test/bnkr-sponsor.test.mjs",
+    "test:sponsor:fork": "node scripts/fork/run.mjs --bnkr-sponsor"
   },
   "devDependencies": {
     "@ethereumjs/block": "5.3.0",
